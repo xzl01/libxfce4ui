@@ -36,11 +36,6 @@
 
 
 
-#define XFCE_SHORTCUTS_PROVIDER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), \
-    XFCE_TYPE_SHORTCUTS_PROVIDER, XfceShortcutsProviderPrivate))
-
-
-
 /* Property identifiers */
 enum
 {
@@ -90,7 +85,7 @@ struct _XfceShortcutsProviderContext
 
 
 
-G_DEFINE_TYPE (XfceShortcutsProvider, xfce_shortcuts_provider, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (XfceShortcutsProvider, xfce_shortcuts_provider, G_TYPE_OBJECT)
 
 
 
@@ -98,8 +93,6 @@ static void
 xfce_shortcuts_provider_class_init (XfceShortcutsProviderClass *klass)
 {
   GObjectClass *gobject_class;
-
-  g_type_class_add_private (klass, sizeof (XfceShortcutsProviderPrivate));
 
   gobject_class = G_OBJECT_CLASS (klass);
   gobject_class->constructed = xfce_shortcuts_provider_constructed;
@@ -145,7 +138,7 @@ xfce_shortcuts_provider_class_init (XfceShortcutsProviderClass *klass)
 static void
 xfce_shortcuts_provider_init (XfceShortcutsProvider *provider)
 {
-  provider->priv = XFCE_SHORTCUTS_PROVIDER_GET_PRIVATE (provider);
+  provider->priv = xfce_shortcuts_provider_get_instance_private (provider);
 
   provider->priv->channel = xfconf_channel_new ("xfce4-keyboard-shortcuts");
 
@@ -160,10 +153,10 @@ xfce_shortcuts_provider_constructed (GObject *object)
 {
   XfceShortcutsProvider *provider = XFCE_SHORTCUTS_PROVIDER (object);
 
-  xfce_shortcuts_provider_register (provider);
-
   provider->priv->default_base_property = g_strdup_printf ("/%s/default", provider->priv->name);
   provider->priv->custom_base_property = g_strdup_printf ("/%s/custom", provider->priv->name);
+
+  xfce_shortcuts_provider_register (provider);
 
   if (!xfce_shortcuts_provider_is_custom (provider))
     xfce_shortcuts_provider_reset_to_defaults (provider);
@@ -403,7 +396,6 @@ _xfce_shortcuts_provider_clone_default (const gchar           *property,
                                         XfceShortcutsProvider *provider)
 {
   const gchar *shortcut;
-  const gchar *command;
   gchar       *custom_property;
 
   g_return_val_if_fail (XFCE_IS_SHORTCUTS_PROVIDER (provider), TRUE);
@@ -413,9 +405,8 @@ _xfce_shortcuts_provider_clone_default (const gchar           *property,
     return FALSE;
 
   shortcut = property + strlen (provider->priv->default_base_property) + strlen ("/");
-  command = g_value_get_string (value);
 
-  DBG ("shortcut = %s, command = %s", shortcut, command);
+  DBG ("shortcut = %s, command = %s", shortcut, g_value_get_string (value));
 
   custom_property = g_strconcat (provider->priv->custom_base_property, "/", shortcut, NULL);
   xfconf_channel_set_property (provider->priv->channel, custom_property, value);
@@ -560,6 +551,7 @@ xfce_shortcuts_provider_get_shortcut (XfceShortcutsProvider *provider,
     {
       property2 = g_strconcat (property, "/startup-notify", NULL);
       snotify = xfconf_channel_get_bool (provider->priv->channel, property2, FALSE);
+      g_free (property2);
 
       sc = g_slice_new0 (XfceShortcut);
       sc->command = command;
@@ -601,39 +593,9 @@ xfce_shortcuts_provider_has_shortcut (XfceShortcutsProvider *provider,
        * GTK+ used <Control> and this might be stored in Xfconf. We need
        * to check for this too. */
 
-      const gchar *primary;
-      const gchar *p, *s;
-      GString     *replaced;
       gchar       *with_control_shortcut;
 
-      replaced = g_string_sized_new (strlen (shortcut));
-      primary = "Primary";
-
-      /* Replace Primary in the string by Control using the same logic
-       * as exo_str_replace. */
-
-      while (*shortcut != '\0')
-        {
-          if (G_UNLIKELY (*shortcut == *primary))
-            {
-              /* compare the pattern to the current string */
-              for (p = primary + 1, s = shortcut + 1; *p == *s; ++s, ++p)
-                if (*p == '\0' || *s == '\0')
-                  break;
-
-              /* check if the pattern fully matched */
-              if (G_LIKELY (*p == '\0'))
-                {
-                  g_string_append (replaced, "Control");
-                  shortcut = s;
-                  continue;
-                }
-            }
-
-          g_string_append_c (replaced, *shortcut++);
-        }
-
-      with_control_shortcut = g_string_free (replaced, FALSE);
+      with_control_shortcut = xfce_str_replace (shortcut, "Primary", "Control");
 
       DBG ("Looking for old GTK+ shortcut %s", with_control_shortcut);
 
@@ -701,7 +663,7 @@ xfce_shortcuts_provider_reset_shortcut (XfceShortcutsProvider *provider,
 
   DBG ("property = %s", property);
 
-  xfconf_channel_reset_property (provider->priv->channel, property, FALSE);
+  xfconf_channel_reset_property (provider->priv->channel, property, TRUE);
   g_free (property);
 }
 
@@ -711,6 +673,7 @@ void
 xfce_shortcuts_free (GList *shortcuts)
 {
   g_list_foreach (shortcuts, (GFunc) (void (*)(void)) xfce_shortcut_free, NULL);
+  g_list_free (shortcuts);
 }
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-export DEB_LDFLAGS_MAINT_APPEND=-Wl,--as-needed -Wl,-O1 -Wl,-z,defs
+export DEB_LDFLAGS_MAINT_APPEND=-Wl,-O1 -Wl,-z,defs
 export DEB_BUILD_MAINT_OPTIONS=hardening=+all
 
 XFVENDOR=Debian
@@ -12,16 +12,21 @@ endif
 	dh $@ --with gir
 
 override_dh_auto_configure:
-	dh_auto_configure -- --with-vendor-info=$(XFVENDOR) --enable-gtk-doc --enable-introspection=yes
+	dh_auto_configure -- \
+		--with-vendor-info=$(XFVENDOR) \
+		--enable-gtk-doc \
+		--enable-introspection=yes \
+		--enable-vala=no
 
 override_dh_install:
+	find debian/tmp -name '*.la' -delete
 ifneq ($(XFVENDOR),Xubuntu)
 	dh_install --sourcedir=$(CURDIR) -plibxfce4ui-utils debian/vendorinfo usr/share/xfce4
 endif
-	dh_install -X .la
+	dh_install
 
-override_dh_missing:
-	dh_missing --fail-missing -X .la
+override_dh_installchangelogs:
+	DEB_BUILD_OPTIONS=notrimdch dh_installchangelogs NEWS
 
 override_dh_makeshlibs:
 	dh_makeshlibs -plibxfce4ui-2-0 -Xlibxfce4kbd-private

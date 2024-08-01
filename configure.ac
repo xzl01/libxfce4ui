@@ -4,7 +4,7 @@ dnl Edit that file instead!
 dnl
 
 dnl
-dnl Copyright (c) 2007-2020 The Xfce development team
+dnl Copyright (c) 2007-2024 The Xfce development team
 dnl
 
 dnl ***************************
@@ -13,10 +13,10 @@ dnl ***************************
 m4_define([libxfce4ui_verinfo], [0:0:0])
 m4_define([libxfce4ui_version_api], [2])
 m4_define([libxfce4ui_version_major], [4])
-m4_define([libxfce4ui_version_minor], [16])
-m4_define([libxfce4ui_version_micro], [1])
+m4_define([libxfce4ui_version_minor], [18])
+m4_define([libxfce4ui_version_micro], [6])
 m4_define([libxfce4ui_version_nano], []) dnl leave this empty to have no nano version
-m4_define([libxfce4ui_version_build], [a987b4a])
+m4_define([libxfce4ui_version_build], [45b7287])
 m4_define([libxfce4ui_version_tag], [])
 m4_define([libxfce4ui_version], [libxfce4ui_version_major().libxfce4ui_version_minor().libxfce4ui_version_micro()ifelse(libxfce4ui_version_nano(), [], [], [.libxfce4ui_version_nano()])ifelse(libxfce4ui_version_tag(), [git], [libxfce4ui_version_tag()-libxfce4ui_version_build()], [libxfce4ui_version_tag()])])
 
@@ -35,7 +35,7 @@ m4_define([libxfce4ui_debug_default], [ifelse(libxfce4ui_version_tag(), [git], [
 dnl ***************************
 dnl *** Initialize autoconf ***
 dnl ***************************
-AC_COPYRIGHT([Copyright (c) 2007-2019 The Xfce development team])
+AC_COPYRIGHT([Copyright (c) 2007-2024 The Xfce development team])
 AC_INIT([libxfce4ui], [libxfce4ui_version], [https://gitlab.xfce.org/xfce/libxfce4ui/-/issues], [libxfce4ui])
 AC_PREREQ([2.69])
 AC_CONFIG_MACRO_DIRS([m4])
@@ -110,7 +110,6 @@ AC_SUBST([LIBXFCE4KBD_PRIVATE_VERSION_API])
 dnl ***************************************
 dnl *** Check for standard header files ***
 dnl ***************************************
-AC_HEADER_STDC()
 AC_CHECK_HEADERS([crt_externs.h errno.h fcntl.h limits.h locale.h math.h \
                   memory.h signal.h stdarg.h stdlib.h string.h unistd.h])
 AC_CHECK_DECLS([environ])
@@ -119,7 +118,10 @@ AC_CHECK_FUNCS([_NSGetEnviron])
 dnl ******************************
 dnl *** Check for i18n support ***
 dnl ******************************
-XDT_I18N([])
+XDT_I18N()
+AC_SEARCH_LIBS([bind_textdomain_codeset], [intl],
+  [AC_DEFINE([HAVE_BIND_TEXTDOMAIN_CODESET], [1], [Define to 1 if you have the 'bind_textdomain_codeset' function.])],
+  [])
 
 dnl *******************************************
 dnl *** Check for X Window System installed ***
@@ -130,9 +132,10 @@ XDT_CHECK_LIBSM()
 dnl ***********************************
 dnl *** Check for required packages ***
 dnl ***********************************
-XDT_CHECK_PACKAGE([GLIB], [glib-2.0], [2.50.0])
-XDT_CHECK_PACKAGE([GTK3], [gtk+-3.0], [3.22.0])
-XDT_CHECK_PACKAGE([LIBXFCE4UTIL], [libxfce4util-1.0], [4.15.6])
+XDT_CHECK_PACKAGE([GLIB], [glib-2.0], [2.66.0])
+XDT_CHECK_PACKAGE([GTK3], [gtk+-3.0], [3.24.0])
+XDT_CHECK_PACKAGE([LIBXFCE4UTIL], [libxfce4util-1.0], [4.17.2])
+XDT_CHECK_PACKAGE([XFCONF], [libxfconf-0], [4.12.0])
 
 dnl ****************************************************************
 dnl *** Optional support for system information based on glibtop ***
@@ -142,11 +145,18 @@ XDT_CHECK_OPTIONAL_PACKAGE([GLIBTOP],
                            [GLIBTOP support])
 AM_CONDITIONAL([ENABLE_GLIBTOP], [test "x$GLIBTOP_FOUND" = "xyes"])
 
-AC_DEFINE(GLIB_VERSION_MIN_REQUIRED, GLIB_VERSION_2_50, [Ignore post 2.50 deprecations])
-AC_DEFINE(GLIB_VERSION_MAX_ALLOWED, GLIB_VERSION_2_50, [Prevent post 2.50 APIs])
+AC_DEFINE(GLIB_VERSION_MIN_REQUIRED, GLIB_VERSION_2_66, [Ignore post 2.66 deprecations])
+AC_DEFINE(GLIB_VERSION_MAX_ALLOWED, GLIB_VERSION_2_66, [Prevent post 2.66 APIs])
 
-AC_DEFINE(GDK_VERSION_MIN_REQUIRED, GDK_VERSION_3_22, [Ignore post 3.22 deprecations])
-AC_DEFINE(GDK_VERSION_MAX_ALLOWED, GDK_VERSION_3_22, [Prevent post 3.22 APIs])
+AC_DEFINE(GDK_VERSION_MIN_REQUIRED, GDK_VERSION_3_24, [Ignore post 3.24 deprecations])
+AC_DEFINE(GDK_VERSION_MAX_ALLOWED, GDK_VERSION_3_24, [Prevent post 3.24 APIs])
+
+dnl **************************************************************
+dnl *** Check time.h and sys/time.h for libgtop ***
+dnl **************************************************************
+if test x"$GLIBTOP_FOUND" = x"yes"; then
+  AC_CHECK_HEADERS([time.h sys/time.h])
+fi
 
 dnl **************************************************************
 dnl *** Optional support for system information based on epoxy ***
@@ -175,7 +185,7 @@ fi
 dnl ***************************************
 dnl *** Check for gobject-introspection ***
 dnl ***************************************
-GOBJECT_INTROSPECTION_CHECK([1.30.0])
+GOBJECT_INTROSPECTION_CHECK([1.66.0])
 
 dnl *************************
 dnl *** Check for vapigen ***
@@ -194,12 +204,9 @@ dnl **************************************************
 dnl *** Check whether to build the keyboard libary ***
 dnl **************************************************
 AC_ARG_ENABLE([keyboard-library],
-              [AC_HELP_STRING([--disable-keyboard-library],
+              [AS_HELP_STRING([--disable-keyboard-library],
                               [Do not compile the keyboard library needed by xfwm4 and xfce4-settings (default=enabled)])],
               [enable_keyboard_library=$enableval], [enable_keyboard_library=yes])
-if test "x$enable_keyboard_library" = "xyes"; then
-  XDT_CHECK_PACKAGE([XFCONF], [libxfconf-0], [4.12.0])
-fi
 AM_CONDITIONAL([ENABLE_KEYBOARD_LIBRARY], [test "x$enable_keyboard_library" = "xyes"])
 
 dnl *********************************************
@@ -207,7 +214,7 @@ dnl *** Check for vendor specific information ***
 dnl *********************************************
 AC_MSG_CHECKING([for additional vendor name and/or info])
 AC_ARG_WITH([vendor-info],
-AC_HELP_STRING([--with-vendor-info=NAME], [Specify an additional vendor name, optionally with a file in $prefix/share/xfce4/venderinfo]),
+AS_HELP_STRING([--with-vendor-info=NAME], [Specify an additional vendor name, optionally with a file in $prefix/share/xfce4/venderinfo]),
     [with_vendor_info="$withval"], [with_vendor_info=""])
 if test x"$with_vendor_info" != x""; then
     AC_DEFINE_UNQUOTED([VENDOR_INFO], ["$with_vendor_info"], [Additional vendor name and/or info])
@@ -221,7 +228,7 @@ dnl *** Check for vendor specific information ***
 dnl *********************************************
 AC_MSG_CHECKING([for a custom manual website location])
 AC_ARG_WITH([manual-website],
-AC_HELP_STRING([--with-manual-website=URI], [Specify an optional manual website, defaults to https://docs.xfce.org.]),
+AS_HELP_STRING([--with-manual-website=URI], [Specify an optional manual website, defaults to https://docs.xfce.org.]),
     [with_manual_website="$withval"],
     [with_manual_website="https://docs.xfce.org/help.php"])
 AC_DEFINE_UNQUOTED([MANUAL_WEBSITE], ["$with_manual_website"], [Documentation website])
@@ -235,15 +242,15 @@ XDT_CHECK_OPTIONAL_PACKAGE([GLADEUI2], [gladeui-2.0],
                            [3.5.0], [gladeui2], [glade interface designer])
 
 AC_ARG_WITH([gladeui2-catalogdir],
-            [AC_HELP_STRING([--with-gladeui2-catalogdir=PATH],
+            [AS_HELP_STRING([--with-gladeui2-catalogdir=PATH],
                             [Specify where to install glade 3.0 designer catalog files (default=autodetect)])],
             [gladeui2_catalogdir="$withval"])
 AC_ARG_WITH([gladeui2-moduledir],
-            [AC_HELP_STRING([--with-gladeui2-moduledir=PATH],
+            [AS_HELP_STRING([--with-gladeui2-moduledir=PATH],
                             [Specify where to install glade 3.0 designer modules (default=autodetect)])],
             [gladeui2_moduledir="$withval"])
 AC_ARG_WITH([gladeui2-pixmapdir],
-            [AC_HELP_STRING([--with-gladeui2-pixmapdir=PATH],
+            [AS_HELP_STRING([--with-gladeui2-pixmapdir=PATH],
                             [Specify where to install glade 3.0 designer pixmaps (default=autodetect)])],
             [gladeui2_pixmapdir="$withval"])
 if test x"$GLADEUI2_FOUND" = x"yes"; then
@@ -286,7 +293,7 @@ dnl ****************************************
 dnl *** Check for ELF visibility support ***
 dnl ****************************************
 AC_ARG_ENABLE([visibility],
-              AC_HELP_STRING([--disable-visibility],
+              AS_HELP_STRING([--disable-visibility],
                              [Do not use ELF visibility attributes]),
               [enable_visibility=$enableval], [enable_visibility=yes])
 have_gnuc_visibility=no
@@ -356,7 +363,7 @@ dnl *****************************
 AC_CONFIG_FILES([
 Makefile
 docs/Makefile
-docs/version.xml
+docs/reference/Makefile
 glade/Makefile
 glade/icons/Makefile
 glade/icons/16x16/Makefile

@@ -160,11 +160,13 @@ show_xfce_titled_dialog_new_with_buttons (GtkButton *button,
 {
   GtkWidget *dialog_gtk3;
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   dialog_gtk3 = xfce_titled_dialog_new_with_buttons ("Settings Editor (Gtk3)", NULL,
                                                 GTK_DIALOG_DESTROY_WITH_PARENT,
                                                 "help-browser", GTK_RESPONSE_HELP,
                                                 "window-close-symbolic", GTK_RESPONSE_OK,
                                                 NULL);
+G_GNUC_END_IGNORE_DEPRECATIONS
 
   xfce_titled_dialog_set_subtitle (XFCE_TITLED_DIALOG (dialog_gtk3),
                                    _("Customize settings stored by Xfconf"));
@@ -213,7 +215,7 @@ show_xfce_gdk_screen_get_active (GtkButton *button,
   screen = xfce_gdk_screen_get_active (&monitor_num);
 
   xfce_dialog_show_info (NULL, NULL, "monitor num: %d of %d",
-                         monitor_num, gdk_screen_get_n_monitors (screen));
+                         monitor_num, gdk_display_get_n_monitors (gdk_screen_get_display (screen)));
 }
 
 static void

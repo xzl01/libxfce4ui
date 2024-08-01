@@ -17,7 +17,7 @@
  * MA 02110-1301 USA
  */
 
-#if !defined (LIBXFCE4UI_INSIDE_LIBXFCE4UI_H) && !defined (LIBXFCE4UI_COMPILATION)
+#if !defined (_LIBXFCE4UI_INSIDE_LIBXFCE4UI_H) && !defined (LIBXFCE4UI_COMPILATION)
 #error "Only <libxfce4ui/libxfce4ui.h> can be included directly, this file is not part of the public API."
 #endif
 
@@ -72,7 +72,8 @@ GtkWidget            *xfce_titled_dialog_new_with_buttons (const gchar      *tit
                                                            GtkWindow        *parent,
                                                            GtkDialogFlags    flags,
                                                            const gchar      *first_button_text,
-                                                           ...) G_GNUC_MALLOC;
+                                                           ...)
+G_GNUC_MALLOC G_GNUC_DEPRECATED_FOR (xfce_titled_dialog_new_with_mixed_buttons());
 
 GtkWidget            *xfce_titled_dialog_new_with_mixed_buttons (const gchar    *title,
                                                                  GtkWindow      *parent,

@@ -27,10 +27,7 @@
 #include <libxfce4util/libxfce4util.h>
 #include <libxfce4ui/libxfce4ui.h>
 
-#include <gtk/gtk.h>
 #include <gdk/gdkx.h>
-#include <glibtop/mem.h>
-#include <glibtop/sysinfo.h>
 #include <sys/utsname.h>
 
 #ifdef HAVE_EPOXY
@@ -69,6 +66,7 @@ static const gchar *const arch_64[] = {
   "aarch64",
   "amd64",
   "ia64",
+  "loongarch64",
   "ppc64",
   "sparc64",
   "x86_64",
@@ -89,7 +87,7 @@ prettify_info (const char *info)
     { "Core[(]TM[)]", "Core<sup>\342\204\242</sup>"},
     { "Atom[(]TM[)]", "Atom<sup>\342\204\242</sup>"},
     { "Gallium .* on (AMD .*)", "\\1"},
-    { "(AMD .*) [(].*", "\\1"},
+    { "(AMD .*) [(][^)]*[)]", "\\1"},
     { "(AMD [A-Z])(.*)", "\\1\\L\\2\\E"},
     { "AMD", "AMD<sup>\302\256</sup>"},
     { "GeForce ", "GeForce<sup>\302\256</sup> "},
@@ -201,7 +199,7 @@ get_cpu_info (const glibtop_sysinfo *info)
   /* count duplicates */
   for (i = 0; i != info->ncpu; ++i)
     {
-      const char * const keys[] = { "model name", "cpu", "Processor" };
+      const char * const keys[] = { "model name", "cpu", "Model Name", "Processor" };
       char *model;
       int  *count;
 
@@ -326,15 +324,16 @@ get_drm_cards (GList *gpus)
         {
           GUdevDevice *parent;
           const char *property;
+          char *cleanedup_property;
 
           parent = g_udev_device_get_parent (d);
 
           property = g_udev_device_get_property (parent, "ID_MODEL_FROM_DATABASE");
-          if (property)
+          if (property && (cleanedup_property = info_cleanup (property)) != NULL)
             {
               GPUInfo *const gpu = g_new0 (GPUInfo, 1);
 
-              gpu->name = info_cleanup (property);
+              gpu->name = cleanedup_property;
               g_strstrip (gpu->name);
 
               /* Example GPU names before cleanup:
@@ -439,22 +438,23 @@ get_gpu_info (guint *num_gpus)
 	if (glXMakeCurrent (dpy, win, ctx))
         {
           GPUInfo *gpu = g_new0 (GPUInfo, 1);
-          gchar *renderer;
+          gchar *renderer, *cleanedup_renderer;
 
           gpu->is_default = TRUE;
 
           renderer = g_strdup ((const gchar*) glGetString (GL_RENDERER));
-          if (renderer) {
-            gsize length = strlen (renderer);
-            gchar *renderer_lc = g_ascii_strdown (renderer, length);
-            gchar *s;
-            gboolean strip = true;
+          if (renderer && (cleanedup_renderer = info_cleanup (renderer)) != NULL)
+          {
+            gsize length;
+            gchar *renderer_lc;
+            gboolean strip = TRUE;
 
-            s = info_cleanup (renderer);
             g_free (renderer);
-            renderer = s;
+            renderer = cleanedup_renderer;
+            length = strlen (renderer);
 
             /* Return full renderer string in the following cases: */
+            renderer_lc = g_ascii_strdown (renderer, length);
             strip = strip && !g_str_has_prefix (renderer_lc, "llvmpipe");
             strip = strip && !g_str_has_prefix (renderer_lc, "softpipe");
             strip = strip && !g_str_has_prefix (renderer_lc, "swr");
@@ -474,8 +474,8 @@ get_gpu_info (guint *num_gpus)
             }
 
             gpu->name = g_strndup (renderer, length);
-            g_free (renderer);
           }
+          g_free (renderer);
 
           if (epoxy_has_glx_extension (dpy, 0, "GLX_MESA_query_renderer"))
           {
@@ -559,6 +559,34 @@ get_gpu_info (guint *num_gpus)
 
 
 
+/**
+ * @string: A string which might be quoted with ' or ".
+ *
+ * Unquotes the given string if both leading and trailing quotes are present,
+ * and if the quotes are of the same type (single or double).
+ * The returned string has to be freed with g_free() when no longer needed. 
+ *
+ * Return value: A newly-allocated, unquoted string.
+ */
+static gchar *
+unquote_string (const gchar *string)
+{
+  gint size = 0;
+
+  if ((g_str_has_prefix (string, "\"") && g_str_has_suffix (string, "\""))
+      || (g_str_has_prefix (string, "\'") && g_str_has_suffix (string, "\'")))
+    {
+      string += 1;
+      size -= 1;
+    }
+
+  size += strlen (string);
+
+  return g_strndup (string, size);
+}
+
+
+
 static GHashTable*
 get_os_info (void)
 {
@@ -586,7 +614,6 @@ get_os_info (void)
 
           if (delimiter != NULL)
             {
-              gint size;
               gchar *key, *value;
 
               key = g_strndup (lines[i], delimiter - lines[i]);
@@ -594,17 +621,7 @@ get_os_info (void)
               /* Jump the '=' */
               delimiter += strlen ("=");
 
-              /* Eventually jump the ' " ' character */
-              if (g_str_has_prefix (delimiter, "\""))
-                delimiter += strlen ("\"");
-
-              size = strlen (delimiter);
-
-              /* Don't consider the last ' " ' too */
-              if (g_str_has_suffix (delimiter, "\""))
-                size -= strlen ("\"");
-
-              value = g_strndup (delimiter, size);
+              value = unquote_string (delimiter);
 
               g_hash_table_insert (hashtable, key, value);
             }
@@ -664,6 +681,9 @@ get_system_info (guint infotype)
         break;
       case DEVICE_NAME:
         result = g_strdup (buffer.nodename);
+        break;
+      case KERNEL:
+        result = g_strdup (buffer.release);
         break;
     }
 

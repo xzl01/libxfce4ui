@@ -71,6 +71,8 @@ xfce_about_system (GtkBuilder *builder)
   g_autofree char *device_text = NULL;
   g_autofree char *cpu_text = NULL;
   g_autofree char *gpu_text = NULL;
+  g_autofree char *gtk_text = NULL;
+  g_autofree char *kernel_text = NULL;
   g_autofree char *memory_text = NULL;
   g_autofree char *os_name_text = NULL;
   g_autofree char *os_type_text = NULL;
@@ -88,17 +90,26 @@ xfce_about_system (GtkBuilder *builder)
   os_type_text = get_os_type ();
   gtk_label_set_text (GTK_LABEL (label), os_type_text ? os_type_text : "");
 
-  label = gtk_builder_get_object (builder, "xfce-version");
-  gtk_label_set_text (GTK_LABEL (label), xfce_version_string ());
-
   label = gtk_builder_get_object (builder, "vendor-info");
   vendor_info = gtk_builder_get_object (builder, "vendor-info-label");
 #ifdef VENDOR_INFO
   gtk_label_set_text (GTK_LABEL (label), VENDOR_INFO);
+  gtk_widget_show (GTK_WIDGET (vendor_info));
 #else
   gtk_widget_hide (GTK_WIDGET (vendor_info));
   gtk_widget_hide (GTK_WIDGET (label));
 #endif
+
+  label = gtk_builder_get_object (builder, "xfce-version");
+  gtk_label_set_text (GTK_LABEL (label), xfce_version_string ());
+
+  label = gtk_builder_get_object (builder, "gtk-version");
+  gtk_text = g_strdup_printf ("%d.%d.%d", gtk_get_major_version (), gtk_get_minor_version (), gtk_get_micro_version ());
+  gtk_label_set_text (GTK_LABEL (label), gtk_text);
+
+  label = gtk_builder_get_object (builder, "kernel-version");
+  kernel_text = get_system_info (KERNEL);
+  gtk_label_set_text (GTK_LABEL (label), kernel_text ? kernel_text : "");
 
   label = gtk_builder_get_object (builder, "cpu");
   info = glibtop_get_sysinfo ();
@@ -162,7 +173,7 @@ xfce_about_about (GtkWidget *vbox)
       },
       { "xfce4-settings",
         "org.xfce.settings.manager",
-        N_("Setting System"),
+        N_("Settings Manager"),
         N_("Configures appearance, display, keyboard and mouse settings.")
       },
       { "xfce4-appfinder",
@@ -256,6 +267,7 @@ xfce_about_credits (GtkTextBuffer *buffer)
   g_return_if_fail (GTK_IS_TEXT_BUFFER (buffer));
 
   title = gtk_text_buffer_create_tag (buffer, "title",
+                                      "pixels-below-lines", 6,
                                       "scale", 1.1,
                                       "weight", PANGO_WEIGHT_BOLD, NULL);
 
@@ -490,7 +502,7 @@ main (gint    argc,
   if (G_UNLIKELY (opt_version))
     {
       g_print ("%s %s (Xfce %s)\n\n", G_LOG_DOMAIN, PACKAGE_VERSION, xfce_version_string ());
-      g_print ("%s\n", "Copyright (c) 2008-2019");
+      g_print ("%s\n", "Copyright (c) 2008-2024");
       g_print ("\t%s\n\n", _("The Xfce development team. All rights reserved."));
       g_print (_("Please report bugs to <%s>."), PACKAGE_BUGREPORT);
       g_print ("\n");

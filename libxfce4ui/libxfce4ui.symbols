@@ -75,6 +75,7 @@ xfce_message_dialog G_GNUC_NULL_TERMINATED
 #if IN_SOURCE(__XFCE_GDK_EXTENSIONS_C__)
 xfce_gdk_screen_get_active
 xfce_gdk_screen_get_geometry
+xfce_gdk_device_grab
 #endif
 #endif
 
@@ -89,12 +90,16 @@ xfce_gtk_radio_menu_item_new
 xfce_gtk_menu_item_new_from_action_entry
 xfce_gtk_toggle_menu_item_new_from_action_entry
 xfce_gtk_tool_button_new_from_action_entry
+xfce_gtk_toggle_tool_button_new_from_action_entry
 xfce_gtk_accel_map_add_entries
 xfce_gtk_accel_group_connect_action_entries
 xfce_gtk_accel_group_disconnect_action_entries
 xfce_gtk_get_action_entry_by_id
 xfce_gtk_translate_action_entries
+xfce_gtk_handle_tab_accels
+xfce_gtk_execute_tab_accel
 xfce_gtk_menu_append_seperator
+xfce_gtk_menu_append_separator
 xfce_gtk_button_new_mixed G_GNUC_MALLOC
 xfce_gtk_frame_box_new G_GNUC_MALLOC
 xfce_gtk_frame_box_new_with_content G_GNUC_MALLOC
@@ -105,6 +110,7 @@ xfce_icon_name_from_desktop_id
 xfce_gicon_from_name
 xfce_gtk_menu_item_set_accel_label
 xfce_has_gtk_frame_extents
+xfce_gtk_label_set_a11y_relation
 #endif
 #endif
 
@@ -156,6 +162,16 @@ xfce_sm_client_set_restart_command
 xfce_sm_client_get_restart_command
 xfce_sm_client_set_current_directory
 xfce_sm_client_get_current_directory
+#endif
+#endif
+
+/* xfce-screensaver functions */
+#if IN_HEADER(__XFCE_SCREENSAVER_H__)
+#if IN_SOURCE(__XFCE_SCREENSAVER_C__)
+xfce_screensaver_get_type
+xfce_screensaver_new
+xfce_screensaver_inhibit
+xfce_screensaver_lock
 #endif
 #endif
 

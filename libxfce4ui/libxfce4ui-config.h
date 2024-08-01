@@ -17,7 +17,7 @@
  * MA 02110-1301 USA
  */
 
-#if !defined (LIBXFCE4UI_INSIDE_LIBXFCE4UI_H) && !defined (LIBXFCE4UI_COMPILATION)
+#if !defined (_LIBXFCE4UI_INSIDE_LIBXFCE4UI_H) && !defined (LIBXFCE4UI_COMPILATION)
 #error "Only <libxfce4ui/libxfce4ui.h> can be included directly, this file may disappear or change contents."
 #endif
 
@@ -44,7 +44,7 @@ G_BEGIN_DECLS
  * that can be used by the C pre-processor.
  *
  */
-#define LIBXFCE4UI_MINOR_VERSION (16)
+#define LIBXFCE4UI_MINOR_VERSION (18)
 
 /**
  * LIBXFCE4UI_MICRO_VERSION:
@@ -53,13 +53,13 @@ G_BEGIN_DECLS
  * that can be used by the C pre-processor.
  *
  */
-#define LIBXFCE4UI_MICRO_VERSION (1)
+#define LIBXFCE4UI_MICRO_VERSION (6)
 
 /**
  * LIBXFCE4UI_CHECK_VERSION:
  * @major : The major version of the library, i.e. 4
- * @minor : The minor version of the library, i.e. 16
- * @micro : The micro release of the library, i.e. 1
+ * @minor : The minor version of the library, i.e. 18
+ * @micro : The micro release of the library, i.e. 6
  *
  * A macro to compare libxfce4ui versions to determine if a particular
  * function is available.

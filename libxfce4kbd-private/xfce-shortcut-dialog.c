@@ -129,7 +129,10 @@ xfce_shortcut_dialog_class_init (XfceShortcutDialogClass *klass)
   GObjectClass *gobject_class;
 
   /* Make sure to use the translations from libxfce4ui */
-  xfce_textdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR, "UTF-8");
+  bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+  bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+#endif
 
   gobject_class = G_OBJECT_CLASS (klass);
   gobject_class->finalize = xfce_shortcut_dialog_finalize;
@@ -204,9 +207,9 @@ xfce_shortcut_dialog_create_contents (XfceShortcutDialog *dialog,
   const gchar *action_type;
   const gchar *title;
   const gchar *icon_name;
-  const gchar *explanation_label;
   const gchar *text;
   const gchar *format;
+  gchar       *explanation_label;
   gchar       *markup;
 
   if (g_utf8_collate (provider, "xfwm4") == 0)
@@ -275,6 +278,7 @@ xfce_shortcut_dialog_create_contents (XfceShortcutDialog *dialog,
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
   gtk_container_add (GTK_CONTAINER (content_box), label);
   gtk_widget_show (label);
+  g_free (explanation_label);
 
   /* Box and labels to display the shortcut currently being grabbed.
    * It will be updated to key-press events. */
@@ -323,7 +327,8 @@ xfce_shortcut_dialog_run (XfceShortcutDialog *dialog,
 
   /* Take control on the keyboard */
   if (gdk_seat_grab (seat,
-                 gdk_screen_get_root_window (gdk_display_get_default_screen (display)),
+                 parent != NULL ? gtk_widget_get_window (parent)
+                                : gdk_screen_get_root_window (gdk_display_get_default_screen (display)),
                  GDK_SEAT_CAPABILITY_KEYBOARD, TRUE, NULL, NULL,
                  xfce_shortcut_dialog_prepare_grab, NULL) == GDK_GRAB_SUCCESS)
     {
@@ -428,7 +433,7 @@ xfce_shortcut_dialog_key_pressed (XfceShortcutDialog *dialog,
   g_free (escaped_label);
   g_strfreev (keys);
 
-  return FALSE;
+  return TRUE;
 }
 
 
@@ -469,7 +474,7 @@ xfce_shortcut_dialog_key_released (XfceShortcutDialog *dialog,
       gtk_widget_hide (dialog->key_box);
     }
 
-  return FALSE;
+  return TRUE;
 }
 
 

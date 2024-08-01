@@ -4,6 +4,9 @@
 
 #include <glib.h>
 
+/* silence '-Wdeprecated-declarations' warnings from our own deprecations */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+
 #if 1
 #ifdef __LIBXFCE4UI_CONFIG_C__
 #undef libxfce4ui_check_version
@@ -66,6 +69,9 @@ extern __typeof (xfce_gdk_screen_get_active) xfce_gdk_screen_get_active __attrib
 #undef xfce_gdk_screen_get_geometry
 extern __typeof (xfce_gdk_screen_get_geometry) xfce_gdk_screen_get_geometry __attribute((alias("IA__xfce_gdk_screen_get_geometry"), visibility("default")));
 
+#undef xfce_gdk_device_grab
+extern __typeof (xfce_gdk_device_grab) xfce_gdk_device_grab __attribute((alias("IA__xfce_gdk_device_grab"), visibility("default")));
+
 #endif
 #endif
 #if 1
@@ -94,6 +100,9 @@ extern __typeof (xfce_gtk_toggle_menu_item_new_from_action_entry) xfce_gtk_toggl
 #undef xfce_gtk_tool_button_new_from_action_entry
 extern __typeof (xfce_gtk_tool_button_new_from_action_entry) xfce_gtk_tool_button_new_from_action_entry __attribute((alias("IA__xfce_gtk_tool_button_new_from_action_entry"), visibility("default")));
 
+#undef xfce_gtk_toggle_tool_button_new_from_action_entry
+extern __typeof (xfce_gtk_toggle_tool_button_new_from_action_entry) xfce_gtk_toggle_tool_button_new_from_action_entry __attribute((alias("IA__xfce_gtk_toggle_tool_button_new_from_action_entry"), visibility("default")));
+
 #undef xfce_gtk_accel_map_add_entries
 extern __typeof (xfce_gtk_accel_map_add_entries) xfce_gtk_accel_map_add_entries __attribute((alias("IA__xfce_gtk_accel_map_add_entries"), visibility("default")));
 
@@ -109,8 +118,17 @@ extern __typeof (xfce_gtk_get_action_entry_by_id) xfce_gtk_get_action_entry_by_i
 #undef xfce_gtk_translate_action_entries
 extern __typeof (xfce_gtk_translate_action_entries) xfce_gtk_translate_action_entries __attribute((alias("IA__xfce_gtk_translate_action_entries"), visibility("default")));
 
+#undef xfce_gtk_handle_tab_accels
+extern __typeof (xfce_gtk_handle_tab_accels) xfce_gtk_handle_tab_accels __attribute((alias("IA__xfce_gtk_handle_tab_accels"), visibility("default")));
+
+#undef xfce_gtk_execute_tab_accel
+extern __typeof (xfce_gtk_execute_tab_accel) xfce_gtk_execute_tab_accel __attribute((alias("IA__xfce_gtk_execute_tab_accel"), visibility("default")));
+
 #undef xfce_gtk_menu_append_seperator
 extern __typeof (xfce_gtk_menu_append_seperator) xfce_gtk_menu_append_seperator __attribute((alias("IA__xfce_gtk_menu_append_seperator"), visibility("default")));
+
+#undef xfce_gtk_menu_append_separator
+extern __typeof (xfce_gtk_menu_append_separator) xfce_gtk_menu_append_separator __attribute((alias("IA__xfce_gtk_menu_append_separator"), visibility("default")));
 
 #undef xfce_gtk_button_new_mixed
 extern __typeof (xfce_gtk_button_new_mixed) xfce_gtk_button_new_mixed __attribute((alias("IA__xfce_gtk_button_new_mixed"), visibility("default")));
@@ -141,6 +159,9 @@ extern __typeof (xfce_gtk_menu_item_set_accel_label) xfce_gtk_menu_item_set_acce
 
 #undef xfce_has_gtk_frame_extents
 extern __typeof (xfce_has_gtk_frame_extents) xfce_has_gtk_frame_extents __attribute((alias("IA__xfce_has_gtk_frame_extents"), visibility("default")));
+
+#undef xfce_gtk_label_set_a11y_relation
+extern __typeof (xfce_gtk_label_set_a11y_relation) xfce_gtk_label_set_a11y_relation __attribute((alias("IA__xfce_gtk_label_set_a11y_relation"), visibility("default")));
 
 #endif
 #endif
@@ -256,6 +277,22 @@ extern __typeof (xfce_sm_client_get_current_directory) xfce_sm_client_get_curren
 #endif
 #endif
 #if 1
+#ifdef __XFCE_SCREENSAVER_C__
+#undef xfce_screensaver_get_type
+extern __typeof (xfce_screensaver_get_type) xfce_screensaver_get_type __attribute((alias("IA__xfce_screensaver_get_type"), visibility("default")));
+
+#undef xfce_screensaver_new
+extern __typeof (xfce_screensaver_new) xfce_screensaver_new __attribute((alias("IA__xfce_screensaver_new"), visibility("default")));
+
+#undef xfce_screensaver_inhibit
+extern __typeof (xfce_screensaver_inhibit) xfce_screensaver_inhibit __attribute((alias("IA__xfce_screensaver_inhibit"), visibility("default")));
+
+#undef xfce_screensaver_lock
+extern __typeof (xfce_screensaver_lock) xfce_screensaver_lock __attribute((alias("IA__xfce_screensaver_lock"), visibility("default")));
+
+#endif
+#endif
+#if 1
 #ifdef __XFCE_TITLED_DIALOG_C__
 #undef xfce_titled_dialog_get_type
 extern __typeof (xfce_titled_dialog_get_type) xfce_titled_dialog_get_type __attribute((alias("IA__xfce_titled_dialog_get_type"), visibility("default")));
@@ -289,5 +326,7 @@ extern __typeof (xfce_titled_dialog_set_default_response) xfce_titled_dialog_set
 
 #endif
 #endif
+
+G_GNUC_END_IGNORE_DEPRECATIONS
 
 #endif /* HAVE_GNUC_VISIBILITY */

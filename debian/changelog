@@ -1,8 +1,107 @@
-libxfce4ui (4.16.1-deepin1) unstable; urgency=medium
+libxfce4ui (4.18.6-1) unstable; urgency=medium
 
-  * Rebuild
+  [ Yves-Alexis Perez ]
+  * d/watch: track 4.18 releases
+  * d/gbp.conf: track 4.18 branches
+  * New upstream version 4.18.6
+  * d/control: replace pkg-config by pkgconf in b-deps
+  * update override syntax to silence warning
+  * add/update lintian override for false positive
 
- -- Deepin Packages Builder <packages@deepin.org>  Fri, 11 Nov 2022 18:00:32 +0800
+ -- Yves-Alexis Perez <corsac@debian.org>  Fri, 26 Jul 2024 15:14:10 +0200
+
+libxfce4ui (4.18.4-1) unstable; urgency=medium
+
+  * Team upload.
+  * New upstream version 4.18.4.
+
+ -- Unit 193 <unit193@debian.org>  Tue, 13 Jun 2023 01:58:25 -0400
+
+libxfce4ui (4.18.2-2) unstable; urgency=medium
+
+  * Team upload.
+  * d/rules: Explicitly disable vala.
+
+ -- Unit 193 <unit193@debian.org>  Mon, 27 Feb 2023 01:01:48 -0500
+
+libxfce4ui (4.18.2-1) unstable; urgency=medium
+
+  * Team upload.
+  * New upstream version 4.18.2.
+  * d/libxfce4ui-2-0.symbols: Add new symbols.
+  * Update Standards-Version to 4.6.2.
+
+ -- Unit 193 <unit193@debian.org>  Thu, 09 Feb 2023 19:09:49 -0500
+
+libxfce4ui (4.18.1-1) unstable; urgency=medium
+
+  * Team upload.
+  * New upstream version 4.18.1.
+
+ -- Unit 193 <unit193@debian.org>  Fri, 06 Jan 2023 00:43:08 -0500
+
+libxfce4ui (4.18.0-1) unstable; urgency=medium
+
+  * Team upload.
+  * New upstream version 4.18.0.
+  * d/rules: Opt-out of trimmed changelogs, install NEWS as changelog.
+
+ -- Unit 193 <unit193@debian.org>  Thu, 15 Dec 2022 05:16:49 -0500
+
+libxfce4ui (4.17.9-1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream version 4.17.9.
+
+ -- Unit 193 <unit193@debian.org>  Mon, 05 Dec 2022 01:54:50 -0500
+
+libxfce4ui (4.17.8-1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream version 4.17.8.
+  * d/rules: Remove .la files before running the dh_install target.
+
+ -- Unit 193 <unit193@debian.org>  Tue, 01 Nov 2022 05:02:09 -0400
+
+libxfce4ui (4.17.7-1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream version 4.17.7.
+  * Update Standards-Version to 4.6.1.
+
+ -- Unit 193 <unit193@debian.org>  Fri, 30 Sep 2022 23:38:19 -0400
+
+libxfce4ui (4.17.6-1) experimental; urgency=medium
+
+  * Team upload.
+
+  [ Debian Janitor ]
+  * Set upstream metadata fields: Bug-Submit (from ./configure).
+
+  [ Unit 193 ]
+  * New upstream version 4.17.6.
+  * d/control: Bump libxfce4util-dev B-D to 4.17.2.
+  * d/libxfce4ui-2-0.symbols: Add new symbols.
+
+ -- Unit 193 <unit193@debian.org>  Fri, 22 Apr 2022 22:49:01 -0400
+
+libxfce4ui (4.17.3-1) experimental; urgency=medium
+
+  * Team upload.
+  * Add missing entries to previous changelog.
+  * New upstream version 4.17.3.
+  * d/libxfce4ui-2-0.symbols: Add new symbols.
+  * d/rules: Drop '--as-needed', as this is now default in stable.
+
+ -- Unit 193 <unit193@debian.org>  Sun, 02 Jan 2022 23:29:08 -0500
+
+libxfce4ui (4.17.2-1) experimental; urgency=medium
+
+  * New upstream version 4.17.2
+  * d/libxfce4ui-2-0.symbols: updated for new release
+  * d/libxfce4ui-glade.lintian-overrides: dropped, unused
+
+ -- Yves-Alexis Perez <corsac@debian.org>  Sat, 18 Dec 2021 10:20:04 +0100
 
 libxfce4ui (4.16.1-1) unstable; urgency=medium
 

@@ -60,6 +60,10 @@ const ShortcutTemplate xfwm4_shortcut_values[] = {
   { N_("Fill window vertically"), "fill_vert_key" },
   { N_("Toggle above"), "above_key" },
   { N_("Toggle fullscreen"), "fullscreen_key" },
+  { N_("Move window to lower monitor"), "move_window_to_monitor_down_key" },
+  { N_("Move window to left monitor"), "move_window_to_monitor_left_key" },
+  { N_("Move window to right monitor"), "move_window_to_monitor_right_key" },
+  { N_("Move window to upper monitor"), "move_window_to_monitor_up_key" },
   { N_("Move window to upper workspace"), "move_window_up_workspace_key" },
   { N_("Move window to bottom workspace"), "move_window_down_workspace_key" },
   { N_("Move window to left workspace"), "move_window_left_workspace_key" },
@@ -120,7 +124,10 @@ xfce_shortcuts_xfwm4_get_feature_name (const gchar *feature)
   guint i;
 
   /* Make sure to use the translations from libxfce4ui */
-  xfce_textdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR, "UTF-8");
+  bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+  bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+#endif
 
   /* We need to get the human readable string of the action name */
   for (i = 0; xfwm4_shortcut_values[i].name != NULL; ++i)

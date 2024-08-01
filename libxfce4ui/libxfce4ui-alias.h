@@ -4,6 +4,9 @@
 
 #include <glib.h>
 
+/* silence '-Wdeprecated-declarations' warnings from our own deprecations */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+
 #ifdef __LIBXFCE4UI_CONFIG_H__
 #if 1
 extern __typeof (libxfce4ui_check_version) IA__libxfce4ui_check_version __attribute((visibility("hidden")));
@@ -66,6 +69,9 @@ extern __typeof (xfce_gdk_screen_get_active) IA__xfce_gdk_screen_get_active __at
 extern __typeof (xfce_gdk_screen_get_geometry) IA__xfce_gdk_screen_get_geometry __attribute((visibility("hidden")));
 #define xfce_gdk_screen_get_geometry IA__xfce_gdk_screen_get_geometry
 
+extern __typeof (xfce_gdk_device_grab) IA__xfce_gdk_device_grab __attribute((visibility("hidden")));
+#define xfce_gdk_device_grab IA__xfce_gdk_device_grab
+
 #endif
 #endif
 #ifdef __XFCE_GTK_EXTENSIONS_H__
@@ -94,6 +100,9 @@ extern __typeof (xfce_gtk_toggle_menu_item_new_from_action_entry) IA__xfce_gtk_t
 extern __typeof (xfce_gtk_tool_button_new_from_action_entry) IA__xfce_gtk_tool_button_new_from_action_entry __attribute((visibility("hidden")));
 #define xfce_gtk_tool_button_new_from_action_entry IA__xfce_gtk_tool_button_new_from_action_entry
 
+extern __typeof (xfce_gtk_toggle_tool_button_new_from_action_entry) IA__xfce_gtk_toggle_tool_button_new_from_action_entry __attribute((visibility("hidden")));
+#define xfce_gtk_toggle_tool_button_new_from_action_entry IA__xfce_gtk_toggle_tool_button_new_from_action_entry
+
 extern __typeof (xfce_gtk_accel_map_add_entries) IA__xfce_gtk_accel_map_add_entries __attribute((visibility("hidden")));
 #define xfce_gtk_accel_map_add_entries IA__xfce_gtk_accel_map_add_entries
 
@@ -109,8 +118,17 @@ extern __typeof (xfce_gtk_get_action_entry_by_id) IA__xfce_gtk_get_action_entry_
 extern __typeof (xfce_gtk_translate_action_entries) IA__xfce_gtk_translate_action_entries __attribute((visibility("hidden")));
 #define xfce_gtk_translate_action_entries IA__xfce_gtk_translate_action_entries
 
+extern __typeof (xfce_gtk_handle_tab_accels) IA__xfce_gtk_handle_tab_accels __attribute((visibility("hidden")));
+#define xfce_gtk_handle_tab_accels IA__xfce_gtk_handle_tab_accels
+
+extern __typeof (xfce_gtk_execute_tab_accel) IA__xfce_gtk_execute_tab_accel __attribute((visibility("hidden")));
+#define xfce_gtk_execute_tab_accel IA__xfce_gtk_execute_tab_accel
+
 extern __typeof (xfce_gtk_menu_append_seperator) IA__xfce_gtk_menu_append_seperator __attribute((visibility("hidden")));
 #define xfce_gtk_menu_append_seperator IA__xfce_gtk_menu_append_seperator
+
+extern __typeof (xfce_gtk_menu_append_separator) IA__xfce_gtk_menu_append_separator __attribute((visibility("hidden")));
+#define xfce_gtk_menu_append_separator IA__xfce_gtk_menu_append_separator
 
 extern __typeof (xfce_gtk_button_new_mixed) IA__xfce_gtk_button_new_mixed __attribute((visibility("hidden"))) G_GNUC_MALLOC;
 #define xfce_gtk_button_new_mixed IA__xfce_gtk_button_new_mixed
@@ -141,6 +159,9 @@ extern __typeof (xfce_gtk_menu_item_set_accel_label) IA__xfce_gtk_menu_item_set_
 
 extern __typeof (xfce_has_gtk_frame_extents) IA__xfce_has_gtk_frame_extents __attribute((visibility("hidden")));
 #define xfce_has_gtk_frame_extents IA__xfce_has_gtk_frame_extents
+
+extern __typeof (xfce_gtk_label_set_a11y_relation) IA__xfce_gtk_label_set_a11y_relation __attribute((visibility("hidden")));
+#define xfce_gtk_label_set_a11y_relation IA__xfce_gtk_label_set_a11y_relation
 
 #endif
 #endif
@@ -255,6 +276,22 @@ extern __typeof (xfce_sm_client_get_current_directory) IA__xfce_sm_client_get_cu
 
 #endif
 #endif
+#ifdef __XFCE_SCREENSAVER_H__
+#if 1
+extern __typeof (xfce_screensaver_get_type) IA__xfce_screensaver_get_type __attribute((visibility("hidden")));
+#define xfce_screensaver_get_type IA__xfce_screensaver_get_type
+
+extern __typeof (xfce_screensaver_new) IA__xfce_screensaver_new __attribute((visibility("hidden")));
+#define xfce_screensaver_new IA__xfce_screensaver_new
+
+extern __typeof (xfce_screensaver_inhibit) IA__xfce_screensaver_inhibit __attribute((visibility("hidden")));
+#define xfce_screensaver_inhibit IA__xfce_screensaver_inhibit
+
+extern __typeof (xfce_screensaver_lock) IA__xfce_screensaver_lock __attribute((visibility("hidden")));
+#define xfce_screensaver_lock IA__xfce_screensaver_lock
+
+#endif
+#endif
 #ifdef __XFCE_TITLED_DIALOG_H__
 #if 1
 extern __typeof (xfce_titled_dialog_get_type) IA__xfce_titled_dialog_get_type __attribute((visibility("hidden"))) G_GNUC_CONST;
@@ -289,5 +326,7 @@ extern __typeof (xfce_titled_dialog_set_default_response) IA__xfce_titled_dialog
 
 #endif
 #endif
+
+G_GNUC_END_IGNORE_DEPRECATIONS
 
 #endif /* HAVE_GNUC_VISIBILITY */
