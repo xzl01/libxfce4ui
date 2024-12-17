@@ -21,18 +21,18 @@
 #ifndef __XFCE_SHORTCUTS_H__
 #define __XFCE_SHORTCUTS_H__
 
-#include <X11/Xlib.h>
-#include <xfconf/xfconf.h>
+#include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
-gboolean xfce_shortcut_conflict_dialog (GtkWindow   *parent,
-                                        const gchar *owner,
-                                        const gchar *other,
-                                        const gchar *shortcut,
-                                        const gchar *owner_action,
-                                        const gchar *other_action,
-                                        gboolean     ignore_same_provider);
+gboolean
+xfce_shortcut_conflict_dialog (GtkWindow *parent,
+                               const gchar *owner,
+                               const gchar *other,
+                               const gchar *shortcut,
+                               const gchar *owner_action,
+                               const gchar *other_action,
+                               gboolean ignore_same_provider);
 
 G_END_DECLS
 

@@ -31,7 +31,7 @@
  **/
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 
 #ifdef HAVE_STRING_H
@@ -47,20 +47,19 @@
 #include <gtk/gtk.h>
 #include <libxfce4util/libxfce4util.h>
 
-#include <libxfce4ui/xfce-dialogs.h>
-#include <libxfce4ui/xfce-gtk-extensions.h>
-#include <libxfce4ui/xfce-gdk-extensions.h>
-#include <libxfce4ui/xfce-spawn.h>
-#include <libxfce4ui/libxfce4ui-private.h>
-#include <libxfce4ui/libxfce4ui-alias.h>
-
+#include "libxfce4ui-private.h"
 #include "libxfce4ui-resources.h"
+#include "xfce-dialogs.h"
+#include "xfce-gdk-extensions.h"
+#include "xfce-gtk-extensions.h"
+#include "xfce-spawn.h"
+#include "libxfce4ui-alias.h"
 
 static void
 xfce_dialog_show_help_auto_toggled (GtkWidget *button)
 {
-  XfceRc   *rc;
-  gboolean  active = FALSE;
+  XfceRc *rc;
+  gboolean active = FALSE;
 
   if (button != NULL)
     active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button));
@@ -78,12 +77,12 @@ xfce_dialog_show_help_auto_toggled (GtkWidget *button)
 static void
 xfce_dialog_show_help_uri (GdkScreen *screen,
                            GtkWindow *parent,
-                           GString   *uri)
+                           GString *uri)
 {
-  GError   *error = NULL;
-  gchar    *path;
-  gchar    *cmd;
-  gboolean  result;
+  GError *error = NULL;
+  gchar *path;
+  gchar *cmd;
+  gboolean result;
 
   g_return_if_fail (GDK_IS_SCREEN (screen));
   g_return_if_fail (parent == NULL || GTK_IS_WINDOW (parent));
@@ -93,7 +92,7 @@ xfce_dialog_show_help_uri (GdkScreen *screen,
     {
       cmd = g_strdup_printf ("%s --launch WebBrowser '%s'", path, uri->str);
 
-      result = xfce_spawn_command_line_on_screen (screen, cmd, FALSE, TRUE, &error);
+      result = xfce_spawn_command_line (screen, cmd, FALSE, TRUE, TRUE, &error);
 
       g_free (path);
       g_free (cmd);
@@ -107,7 +106,7 @@ xfce_dialog_show_help_uri (GdkScreen *screen,
   if (!result)
     {
       xfce_dialog_show_error (parent, error,
-          _("Failed to open web browser for online documentation"));
+                              _("Failed to open web browser for online documentation"));
       g_error_free (error);
     }
 }
@@ -116,8 +115,8 @@ xfce_dialog_show_help_uri (GdkScreen *screen,
 
 static void
 xfce_dialog_show_help_response (GtkWidget *dialog,
-                                gint       response_id,
-                                GString   *uri)
+                                gint response_id,
+                                GString *uri)
 {
   gtk_widget_hide (dialog);
 
@@ -141,12 +140,12 @@ xfce_dialog_show_help_response (GtkWidget *dialog,
 
 /**
  * xfce_dialog_show_help:
- * @parent    : (allow-none): transient parent of the dialog, or %NULL.
- * @component : (allow-none): name of the component opening the help page or %NULL. If the
+ * @parent    : (nullable): transient parent of the dialog, or %NULL.
+ * @component : (nullable): name of the component opening the help page or %NULL. If the
  *              value is %NULL the target will be the main page of the
  *              documentation website.
- * @page      : (allow-none): subpage of the @component on the website or %NULL.
- * @offset    : (allow-none): anchor offset in @page or %NULL.
+ * @page      : (nullable): subpage of the @component on the website or %NULL.
+ * @offset    : (nullable): anchor offset in @page or %NULL.
  *
  * Asks the user to visit the online documentation. If confirmed, it will open
  * the webbrowser and redirect the user to the correct location.
@@ -159,7 +158,7 @@ xfce_dialog_show_help_response (GtkWidget *dialog,
  * Since: 4.10
  */
 void
-xfce_dialog_show_help (GtkWindow   *parent,
+xfce_dialog_show_help (GtkWindow *parent,
                        const gchar *component,
                        const gchar *page,
                        const gchar *offset)
@@ -171,13 +170,13 @@ xfce_dialog_show_help (GtkWindow   *parent,
 
 /**
  * xfce_dialog_show_help_with_version:
- * @parent    : (allow-none): transient parent of the dialog, or %NULL.
- * @component : (allow-none): name of the component opening the help page or %NULL. If the
+ * @parent    : (nullable): transient parent of the dialog, or %NULL.
+ * @component : (nullable): name of the component opening the help page or %NULL. If the
  *              value is %NULL the target will be the main page of the
  *              documentation website.
- * @page      : (allow-none): subpage of the @component on the website or %NULL.
- * @offset    : (allow-none): anchor offset in @page or %NULL.
- * @version   : (allow-none): alternative version, or %NULL to use xfce_version_string().
+ * @page      : (nullable): subpage of the @component on the website or %NULL.
+ * @offset    : (nullable): anchor offset in @page or %NULL.
+ * @version   : (nullable): alternative version, or %NULL to use xfce_version_string().
  *
  * Asks the user to visit the online documentation. If confirmed, it will open
  * the webbrowser and redirect the user to the correct location.
@@ -192,22 +191,23 @@ xfce_dialog_show_help (GtkWindow   *parent,
  *
  */
 void
-xfce_dialog_show_help_with_version (GtkWindow   *parent,
+xfce_dialog_show_help_with_version (GtkWindow *parent,
                                     const gchar *component,
                                     const gchar *page,
                                     const gchar *offset,
                                     const gchar *version)
 {
-  GtkWidget   *dialog;
+  GtkWidget *dialog;
   const gchar *name;
-  gchar       *primary;
-  GString     *uri;
-  gchar       *locale;
-  GtkWidget   *message_box;
-  GtkWidget   *button;
-  XfceRc      *rc;
-  gboolean     auto_online;
-  GdkScreen   *screen;
+  gchar *primary;
+  GString *uri;
+  gchar *locale;
+  GtkWidget *message_box;
+  GtkWidget *button;
+  XfceRc *rc;
+  gboolean auto_online;
+  GdkScreen *screen;
+  const gchar *text;
 
   g_return_if_fail (parent == NULL || GTK_IS_WINDOW (parent));
 
@@ -266,15 +266,12 @@ xfce_dialog_show_help_with_version (GtkWindow   *parent,
   else
     primary = g_strdup (_("Do you want to read the manual online?"));
 
-  dialog = xfce_message_dialog_new (parent,
-                                    NULL,
+  text = _("You will be redirected to the documentation website "
+           "where the help pages are maintained and translated.");
+  dialog = xfce_message_dialog_new (parent, _("Read the manual"),
                                     "dialog-question",
-                                    primary,
-                                    _("You will be redirected to the documentation website "
-                                      "where the help pages are maintained and translated."),
-                                    _("_Cancel"),
-                                    GTK_RESPONSE_NO,
-                                    _("_Read Online"),
+                                    primary, text, _("_Cancel"),
+                                    GTK_RESPONSE_NO, _("_Read Online"),
                                     GTK_RESPONSE_YES,
                                     NULL);
   g_free (primary);
@@ -288,7 +285,7 @@ xfce_dialog_show_help_with_version (GtkWindow   *parent,
   g_object_set (G_OBJECT (button), "halign", GTK_ALIGN_END, "margin-start", 6, "margin-end", 6, NULL);
   gtk_widget_set_hexpand (button, TRUE);
   g_signal_connect (G_OBJECT (button), "toggled",
-      G_CALLBACK (xfce_dialog_show_help_auto_toggled), NULL);
+                    G_CALLBACK (xfce_dialog_show_help_auto_toggled), NULL);
   gtk_widget_show (button);
 
   /* don't focus the checkbutton */
@@ -299,7 +296,7 @@ xfce_dialog_show_help_with_version (GtkWindow   *parent,
   /* show the dialog without locking the mainloop */
   gtk_window_set_modal (GTK_WINDOW (dialog), parent != NULL);
   g_signal_connect (G_OBJECT (dialog), "response",
-      G_CALLBACK (xfce_dialog_show_help_response), uri);
+                    G_CALLBACK (xfce_dialog_show_help_response), uri);
   gtk_window_present (GTK_WINDOW (dialog));
 }
 
@@ -307,21 +304,21 @@ xfce_dialog_show_help_with_version (GtkWindow   *parent,
 
 /**
  * xfce_dialog_show_info:
- * @parent         : (allow-none): transient parent of the dialog, or %NULL.
- * @secondary_text : (allow-none): secondary text of the dialog or %NULL.
+ * @parent         : (nullable): transient parent of the dialog, or %NULL.
+ * @secondary_text : (nullable): secondary text of the dialog or %NULL.
  * @primary_format : the printf()-style format for the primary problem description.
  * @...            : argument list for the @format.
  *
  * Displays an information dialog on @parent using the @primary_format as message.
  */
 void
-xfce_dialog_show_info (GtkWindow   *parent,
+xfce_dialog_show_info (GtkWindow *parent,
                        const gchar *secondary_text,
                        const gchar *primary_format,
                        ...)
 {
-  va_list  args;
-  gchar   *primary_text;
+  va_list args;
+  gchar *primary_text;
 
   g_return_if_fail (parent == NULL || GTK_IS_WINDOW (parent));
 
@@ -342,21 +339,21 @@ xfce_dialog_show_info (GtkWindow   *parent,
 
 /**
  * xfce_dialog_show_warning:
- * @parent         : (allow-none): transient parent of the dialog, or %NULL.
- * @secondary_text : (allow-none): secondary text of the dialog or %NULL.
+ * @parent         : (nullable): transient parent of the dialog, or %NULL.
+ * @secondary_text : (nullable): secondary text of the dialog or %NULL.
  * @primary_format : the printf()-style format for the primary problem description.
  * @...            : argument list for the @format.
  *
  * Displays a warning dialog on @parent using the @primary_format as message.
  */
 void
-xfce_dialog_show_warning (GtkWindow   *parent,
+xfce_dialog_show_warning (GtkWindow *parent,
                           const gchar *secondary_text,
                           const gchar *primary_format,
                           ...)
 {
-  va_list  args;
-  gchar   *primary_text;
+  va_list args;
+  gchar *primary_text;
 
   g_return_if_fail (parent == NULL || GTK_IS_WINDOW (parent));
 
@@ -377,8 +374,8 @@ xfce_dialog_show_warning (GtkWindow   *parent,
 
 /**
  * xfce_dialog_show_error:
- * @parent         : (allow-none): transient parent of the dialog, or %NULL.
- * @error          : (allow-none): a #GError, which gives a more precise description of the problem or %NULL.
+ * @parent         : (nullable): transient parent of the dialog, or %NULL.
+ * @error          : (nullable): a #GError, which gives a more precise description of the problem or %NULL.
  * @primary_format : the printf()-style format for the primary problem description.
  * @...            : argument list for the @primary_format.
  *
@@ -386,13 +383,13 @@ xfce_dialog_show_warning (GtkWindow   *parent,
  * displaying @error as secondary error text.
  */
 void
-xfce_dialog_show_error (GtkWindow    *parent,
+xfce_dialog_show_error (GtkWindow *parent,
                         const GError *error,
-                        const gchar  *primary_format,
+                        const gchar *primary_format,
                         ...)
 {
-  va_list  args;
-  gchar   *primary_text;
+  va_list args;
+  gchar *primary_text;
 
   g_return_if_fail (parent == NULL || GTK_IS_WINDOW (parent));
 
@@ -413,12 +410,12 @@ xfce_dialog_show_error (GtkWindow    *parent,
 
 /**
  * xfce_dialog_confirm:
- * @parent         : (allow-none): transient parent of the dialog, or %NULL.
+ * @parent         : (nullable): transient parent of the dialog, or %NULL.
  * @stock_id       : the stock name of the confirm button, for example #GTK_STOCK_YES or #GTK_STOCK_CLEAR.
- * @confirm_label  : (allow-none): if non-%NULL, this text is used on the confirm button together with the @stock_id icon.
- * @secondary_text : (allow-none): secondary text in the dialog.
- * @primary_format : (allow-none): the printf()-style format for the dialog question.
- * @...            : (allow-none): argument list for the @primary_format.
+ * @confirm_label  : (nullable): if non-%NULL, this text is used on the confirm button together with the @stock_id icon.
+ * @secondary_text : (nullable): secondary text in the dialog.
+ * @primary_format : (nullable): the printf()-style format for the dialog question.
+ * @...            : (nullable): argument list for the @primary_format.
  *
  * Runs a questions dialog that has a 'Cancel' and a 'Confirm' button. The 'Confirm'
  * button text can be set by @action if given.
@@ -428,17 +425,17 @@ xfce_dialog_show_error (GtkWindow    *parent,
  * Return value: TRUE if the user confirms, else FALSE.
  */
 gboolean
-xfce_dialog_confirm (GtkWindow   *parent,
+xfce_dialog_confirm (GtkWindow *parent,
                      const gchar *stock_id,
                      const gchar *confirm_label,
                      const gchar *secondary_text,
                      const gchar *primary_format,
                      ...)
 {
-  va_list      args;
-  gchar       *primary_text;
+  va_list args;
+  gchar *primary_text;
   const gchar *no_stock_id;
-  gint         response_id;
+  gint response_id;
 
   g_return_val_if_fail (stock_id != NULL || confirm_label != NULL, FALSE);
   g_return_val_if_fail (parent == NULL || GTK_IS_WINDOW (parent), FALSE);
@@ -476,10 +473,10 @@ xfce_dialog_confirm (GtkWindow   *parent,
 
 /**
  * xfce_dialog_confirm_close_tabs:
- * @parent              : (allow-none): transient parent of the dialog, or %NULL.
+ * @parent              : (nullable): transient parent of the dialog, or %NULL.
  * @num_tabs            : the number of open tabs for display to user
  * @show_confirm_box    : whether to ask the user if this confirmation shall be shown in the future
- * @confirm_box_checked : (allow-none): state of confirmation checkbox
+ * @confirm_box_checked : (nullable): state of confirmation checkbox
  *
  * Runs a dialog to ask the user whether they want to close the whole window,
  * close the current tab, or cancel.
@@ -503,9 +500,9 @@ xfce_dialog_confirm (GtkWindow   *parent,
  */
 gint
 xfce_dialog_confirm_close_tabs (GtkWindow *parent,
-                                gint       num_tabs,
-                                gboolean   show_confirm_box,
-                                gboolean  *confirm_box_checked)
+                                gint num_tabs,
+                                gboolean show_confirm_box,
+                                gboolean *confirm_box_checked)
 {
   GtkWidget *dialog, *checkbutton, *vbox;
   const gchar *primary_text, *warning_icon;
@@ -521,7 +518,8 @@ xfce_dialog_confirm_close_tabs (GtkWindow *parent,
                                 "will also close all its tabs."));
   else
     secondary_text = g_strdup_printf (_("This window has %d tabs open. Closing this window "
-                               "will also close all its tabs."), num_tabs);
+                                        "will also close all its tabs."),
+                                      num_tabs);
 
   warning_icon = "dialog-warning";
 
@@ -560,8 +558,8 @@ xfce_dialog_confirm_close_tabs (GtkWindow *parent,
 
 /**
  * xfce_message_dialog_new_valist:
- * @parent            : (allow-none): transient parent of the dialog, or %NULL.
- * @title             : (allow-none): title of the dialog, or %NULL.
+ * @parent            : (nullable): transient parent of the dialog, or %NULL.
+ * @title             : (nullable): title of the dialog, or %NULL.
  * @icon_stock_id     : gtk stock icon name to show in the dialog.
  * @primary_text      : primary text shown in large bold font.
  * @secondary_text    : secondary text shown in normal font.
@@ -571,31 +569,31 @@ xfce_dialog_confirm_close_tabs (GtkWindow *parent,
  * See xfce_message_dialog_new(), this version takes a va_list for
  * language bindings to use.
  *
- * Returns: (transfer full): A new #GtkMessageDialog.
+ * Returns: (transfer none): A new #GtkMessageDialog.
  **/
 GtkWidget *
-xfce_message_dialog_new_valist (GtkWindow   *parent,
+xfce_message_dialog_new_valist (GtkWindow *parent,
                                 const gchar *title,
                                 const gchar *icon_stock_id,
                                 const gchar *primary_text,
                                 const gchar *secondary_text,
                                 const gchar *first_button_text,
-                                va_list      args)
+                                va_list args)
 {
-  GtkBuilder  *gxml;
-  GtkWidget   *dialog;
-  GtkWidget   *dialog_image;
-  GtkWidget   *image;
-  GtkWidget   *button;
-  GtkWidget   *content_area;
-  GtkWidget   *label_box;
+  GtkBuilder *gxml;
+  GtkWidget *dialog;
+  GtkWidget *dialog_image;
+  GtkWidget *image;
+  GtkWidget *button;
+  GtkWidget *content_area;
+  GtkWidget *label_box;
   const gchar *text = first_button_text;
   const gchar *label;
   const gchar *stock_id;
-  gint         response;
-  GdkPixbuf   *pixbuf, *scaled;
-  gint         w, h;
-  GList       *children;
+  gint response;
+  GdkPixbuf *pixbuf, *scaled;
+  gint w, h;
+  GList *children;
 
   g_return_val_if_fail (primary_text != NULL || secondary_text != NULL, NULL);
   g_return_val_if_fail (parent == NULL || GTK_IS_WINDOW (parent), NULL);
@@ -603,15 +601,16 @@ xfce_message_dialog_new_valist (GtkWindow   *parent,
 
   gxml = gtk_builder_new_from_resource ("/org/xfce/libxfce4ui/libxfce4ui-dialog-ui.ui");
 
-  dialog = GTK_WIDGET(gtk_builder_get_object(gxml, "xfce4ui-dialog"));
-  label_box = GTK_WIDGET(gtk_builder_get_object(gxml, "label-box"));
-  dialog_image = GTK_WIDGET(gtk_builder_get_object(gxml, "icon_stock_id"));
+  dialog = GTK_WIDGET (gtk_builder_get_object (gxml, "xfce4ui-dialog"));
+  label_box = GTK_WIDGET (gtk_builder_get_object (gxml, "label-box"));
+  dialog_image = GTK_WIDGET (gtk_builder_get_object (gxml, "icon_stock_id"));
   gtk_window_set_default_size (GTK_WINDOW (dialog), 500, -1);
 
   /* Remove the original message area of the GtkMessageDialog as we add our own */
   content_area = GTK_WIDGET (gtk_dialog_get_content_area (GTK_DIALOG (dialog)));
   children = gtk_container_get_children (GTK_CONTAINER (content_area));
   gtk_container_remove (GTK_CONTAINER (content_area), GTK_WIDGET ((g_list_nth (children, 1))->data));
+  g_list_free (children);
 
   if (parent)
     {
@@ -631,6 +630,8 @@ xfce_message_dialog_new_valist (GtkWindow   *parent,
       gtk_label_set_xalign (GTK_LABEL (primary_label), 0);
       gtk_widget_set_vexpand (GTK_WIDGET (primary_label), TRUE);
       gtk_widget_set_valign (GTK_WIDGET (primary_label), 1.0);
+      gtk_label_set_line_wrap (GTK_LABEL (primary_label), TRUE);
+      gtk_label_set_max_width_chars (GTK_LABEL (primary_label), 50);
 
       gtk_container_add (GTK_CONTAINER (label_box), primary_label);
       gtk_widget_show (primary_label);
@@ -645,7 +646,7 @@ xfce_message_dialog_new_valist (GtkWindow   *parent,
       GtkWidget *secondary_label = gtk_label_new (secondary_text);
       gtk_label_set_line_wrap (GTK_LABEL (secondary_label), TRUE);
       gtk_label_set_xalign (GTK_LABEL (secondary_label), 0.0);
-      gtk_label_set_max_width_chars (GTK_LABEL (secondary_label), 80);
+      gtk_label_set_max_width_chars (GTK_LABEL (secondary_label), 70);
       gtk_widget_set_vexpand (GTK_WIDGET (secondary_label), TRUE);
       gtk_widget_set_valign (GTK_WIDGET (secondary_label), 0.0);
 
@@ -737,8 +738,8 @@ xfce_message_dialog_new_valist (GtkWindow   *parent,
 
 /**
  * xfce_message_dialog_new:
- * @parent            : (allow-none): transient parent of the dialog, or %NULL.
- * @title             : (allow-none): title of the dialog, or %NULL.
+ * @parent            : (nullable): transient parent of the dialog, or %NULL.
+ * @title             : (nullable): title of the dialog, or %NULL.
  * @stock_id          : gtk stock icon name to show in the dialog.
  * @primary_text      : primary text shown in large bold font.
  * @secondary_text    : secondary text shown in normal font.
@@ -807,10 +808,13 @@ xfce_message_dialog_new_valist (GtkWindow   *parent,
  * </programlisting>
  * </example>
  *
- * Return value: (transfer full): A new #GtkMessageDialog.
+ * The caller is responsible for destroying the dialog with gtk_widget_destroy()
+ * when it is no longer required.
+ *
+ * Return value: (transfer none): A new #GtkMessageDialog.
  **/
 GtkWidget *
-xfce_message_dialog_new (GtkWindow   *parent,
+xfce_message_dialog_new (GtkWindow *parent,
                          const gchar *title,
                          const gchar *stock_id,
                          const gchar *primary_text,
@@ -818,7 +822,7 @@ xfce_message_dialog_new (GtkWindow   *parent,
                          const gchar *first_button_text,
                          ...)
 {
-  va_list    args;
+  va_list args;
   GtkWidget *dialog;
 
   g_return_val_if_fail (parent == NULL || GTK_IS_WINDOW (parent), NULL);
@@ -835,8 +839,8 @@ xfce_message_dialog_new (GtkWindow   *parent,
 
 /**
  * xfce_message_dialog:
- * @parent            : (allow-none): transient parent of the dialog, or %NULL.
- * @title             : (allow-none): title of the dialog, or %NULL.
+ * @parent            : (nullable): transient parent of the dialog, or %NULL.
+ * @title             : (nullable): title of the dialog, or %NULL.
  * @stock_id          : gtk stock icon name to show in the dialog.
  * @primary_text      : primary text shown in large bold font.
  * @secondary_text    : secondary text shown in normal font.
@@ -851,7 +855,7 @@ xfce_message_dialog_new (GtkWindow   *parent,
  * Returns: the selected response id.
  **/
 gint
-xfce_message_dialog (GtkWindow   *parent,
+xfce_message_dialog (GtkWindow *parent,
                      const gchar *title,
                      const gchar *stock_id,
                      const gchar *primary_text,
@@ -859,9 +863,9 @@ xfce_message_dialog (GtkWindow   *parent,
                      const gchar *first_button_text,
                      ...)
 {
-  va_list    args;
+  va_list args;
   GtkWidget *dialog;
-  gint       response_id;
+  gint response_id;
 
   g_return_val_if_fail (parent == NULL || GTK_IS_WINDOW (parent), 0);
 
@@ -880,4 +884,4 @@ xfce_message_dialog (GtkWindow   *parent,
 
 
 #define __XFCE_DIALOGS_C__
-#include <libxfce4ui/libxfce4ui-aliasdef.c>
+#include "libxfce4ui-aliasdef.c"

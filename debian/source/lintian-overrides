@@ -1,0 +1,4 @@
+# lintian false positive
+missing-build-dependency-for-dh-addon
+# HTML documentation is generated from source code with gtk-doc-tool
+libxfce4ui source: source-is-missing [docs/reference/html/libxfce4ui-XfceDialogs.html]

@@ -29,40 +29,60 @@
  **/
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 
 #ifdef HAVE_STRING_H
 #include <string.h>
 #endif
 
-#include <libxfce4ui/xfce-gdk-extensions.h>
-#include <libxfce4ui/libxfce4ui-private.h>
-#include <libxfce4ui/libxfce4ui-alias.h>
-
-#ifdef GDK_WINDOWING_X11
-#include <gdk/gdkx.h>
-#endif
+#include "libxfce4ui-private.h"
+#include "xfce-gdk-extensions.h"
+#include "libxfce4ui-alias.h"
 
 
 
 /**
+ * xfce_gdk_monitor_get_number:
+ * @monitor : a #GdkMonitor.
+ *
+ * Returns the index of the @monitor in its display.
+ *
+ * Return value: index of the @monitor
+ **/
+static gint
+xfce_gdk_monitor_get_number (GdkMonitor *monitor)
+{
+  GdkDisplay *display;
+  int num_monitors;
+
+  display = gdk_monitor_get_display (monitor);
+  num_monitors = gdk_display_get_n_monitors (display);
+  for (int i = 0; i < num_monitors; i++)
+    if (gdk_display_get_monitor (display, i) == monitor)
+      return i;
+
+  return -1;
+}
+
+
+/**
  * xfce_gdk_screen_get_active:
- * @monitor_return : (out) (allow-none): Address to store the monitor number to or %NULL.
- *                   Under gtk3 this will always be set to '0'.
+ * @monitor_return : (out) (nullable): Address to store the monitor number to or %NULL.
  *
  * Returns the currently active #GdkScreen, that is, the screen which
  * currently contains the pointer. If no active screen was found, the
  * default #GdkScreen is returned.
  *
- * Return value: (transfer full): the currently active #GdkScreen.
+ * Return value: (transfer none): the currently active #GdkScreen.
  **/
 GdkScreen *
 xfce_gdk_screen_get_active (gint *monitor_return)
 {
-  GdkDisplay       *display;
-  gint              rootx, rooty;
-  GdkScreen        *screen;
+  GdkDisplay *display;
+  GdkMonitor *monitor;
+  gint rootx, rooty;
+  GdkScreen *screen;
 
   GdkSeat *seat;
 
@@ -80,7 +100,10 @@ xfce_gdk_screen_get_active (gint *monitor_return)
     {
       /* return the monitor number */
       if (monitor_return != NULL)
-        *monitor_return = 0;
+        {
+          monitor = gdk_display_get_monitor_at_point (display, rootx, rooty);
+          *monitor_return = xfce_gdk_monitor_get_number (monitor);
+        }
     }
 
   return screen;
@@ -134,5 +157,50 @@ xfce_gdk_screen_get_geometry (void)
 }
 
 
+
+/**
+ * xfce_gdk_device_grab:
+ * @seat : A #GdkSeat.
+ * @window : The #GdkWindow which will own the grab.
+ * @capabilities : Capabilities that will be grabbed.
+ * @cursor : (nullable): The cursor to display while the grab is active. If this
+ *                      is %NULL then the normal cursors are used for window and
+ *                      its descendants, and the cursor for window is used
+ *                      elsewhere.
+ *
+ * Similar to gdk_seat_grab but tries to grab the seat five times with 100ms
+ * between each attempt.
+ *
+ * Return value: %TRUE on success, %FALSE otherwise.
+ *
+ * Since: 4.18
+ **/
+gboolean
+xfce_gdk_device_grab (GdkSeat *seat,
+                      GdkWindow *window,
+                      GdkSeatCapabilities capabilities,
+                      GdkCursor *cursor)
+{
+  GdkGrabStatus status;
+  gint attempts = 0;
+
+  while (TRUE)
+    {
+      status = gdk_seat_grab (seat, window, capabilities, FALSE, cursor, NULL,
+                              NULL, NULL);
+
+      if (status == GDK_GRAB_SUCCESS)
+        return TRUE;
+      if (attempts++ >= 5)
+        return FALSE;
+
+      /* Wait 100ms before trying again, useful when invoked by global hotkey
+       * because xfsettings will grab the key for a moment */
+      g_usleep (100000);
+    }
+
+  return FALSE;
+}
+
 #define __XFCE_GDK_EXTENSIONS_C__
-#include <libxfce4ui/libxfce4ui-aliasdef.c>
+#include "libxfce4ui-aliasdef.c"

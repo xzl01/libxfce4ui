@@ -19,34 +19,35 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 
 #include <gdk/gdkkeysyms.h>
-#include <gdk/gdk.h>
-#include <gdk/gdkx.h>
-#include <gtk/gtk.h>
-
-#include <libxfce4util/libxfce4util.h>
 #include <libxfce4ui/libxfce4ui.h>
+#include <libxfce4util/libxfce4util.h>
 
-#include <libxfce4kbd-private/xfce-shortcuts.h>
-#include <libxfce4kbd-private/xfce-shortcut-dialog.h>
+#include "xfce-shortcut-dialog.h"
+#include "xfce-shortcuts.h"
 
 
 
-static void     xfce_shortcut_dialog_finalize         (GObject                 *object);
-static void     xfce_shortcut_dialog_create_contents  (XfceShortcutDialog      *dialog,
-                                                       const gchar             *provider,
-                                                       const gchar             *action_name,
-                                                       const gchar             *action);
-static gboolean xfce_shortcut_dialog_key_pressed      (XfceShortcutDialog      *dialog,
-                                                       GdkEventKey             *event);
-static gboolean xfce_shortcut_dialog_key_released     (XfceShortcutDialog      *dialog,
-                                                       GdkEventKey             *event);
-static void     xfce_shortcut_dialog_prepare_grab     (GdkSeat                 *seat,
-                                                       GdkWindow               *window,
-                                                       gpointer                 user_data);
+static void
+xfce_shortcut_dialog_finalize (GObject *object);
+static void
+xfce_shortcut_dialog_create_contents (XfceShortcutDialog *dialog,
+                                      const gchar *provider,
+                                      const gchar *action_name,
+                                      const gchar *action);
+static gboolean
+xfce_shortcut_dialog_key_pressed (XfceShortcutDialog *dialog,
+                                  GdkEventKey *event);
+static gboolean
+xfce_shortcut_dialog_key_released (XfceShortcutDialog *dialog,
+                                   GdkEventKey *event);
+static void
+xfce_shortcut_dialog_prepare_grab (GdkSeat *seat,
+                                   GdkWindow *window,
+                                   gpointer user_data);
 
 
 struct _XfceShortcutDialogClass
@@ -54,8 +55,8 @@ struct _XfceShortcutDialogClass
   XfceTitledDialogClass __parent__;
 
   gboolean (*validate_shortcut) (XfceShortcutDialog *dialog,
-                                 const gchar        *shortcut,
-                                 gpointer            user_data);
+                                 const gchar *shortcut,
+                                 gpointer user_data);
 
   gint validate_shortcut_signal;
 };
@@ -67,9 +68,9 @@ struct _XfceShortcutDialog
   GtkWidget *shortcut_label;
   GtkWidget *key_box;
 
-  gchar     *action_name;
-  gchar     *action;
-  gchar     *shortcut;
+  gchar *action_name;
+  gchar *action;
+  gchar *shortcut;
 };
 
 
@@ -83,18 +84,18 @@ G_DEFINE_TYPE (XfceShortcutDialog, xfce_shortcut_dialog, XFCE_TYPE_TITLED_DIALOG
  * GTK+ devs for this.
  */
 static void
-marshal_BOOLEAN__STRING (GClosure     *closure,
-                         GValue       *return_value G_GNUC_UNUSED,
-                         guint         n_param_values,
+marshal_BOOLEAN__STRING (GClosure *closure,
+                         GValue *return_value G_GNUC_UNUSED,
+                         guint n_param_values,
                          const GValue *param_values,
-                         gpointer      invocation_hint G_GNUC_UNUSED,
-                         gpointer      marshal_data)
+                         gpointer invocation_hint G_GNUC_UNUSED,
+                         gpointer marshal_data)
 {
   typedef gboolean (*GMarshalFunc_BOOLEAN__STRING) (gpointer data1,
                                                     gpointer arg_1,
                                                     gpointer data2);
   register GMarshalFunc_BOOLEAN__STRING callback;
-  register GCClosure *cc = (GCClosure*) closure;
+  register GCClosure *cc = (GCClosure *) closure;
   register gpointer data1, data2;
   gboolean v_return;
 
@@ -114,12 +115,11 @@ marshal_BOOLEAN__STRING (GClosure     *closure,
 
   callback = (GMarshalFunc_BOOLEAN__STRING) (marshal_data ? marshal_data : cc->callback);
 
-  #define g_marshal_value_peek_string(v) (char*) g_value_get_string (v)
+#define g_marshal_value_peek_string(v) (char *) g_value_get_string (v)
   v_return = callback (data1, g_marshal_value_peek_string (param_values + 1), data2);
 
   g_value_set_boolean (return_value, v_return);
 }
-
 
 
 
@@ -129,7 +129,10 @@ xfce_shortcut_dialog_class_init (XfceShortcutDialogClass *klass)
   GObjectClass *gobject_class;
 
   /* Make sure to use the translations from libxfce4ui */
-  xfce_textdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR, "UTF-8");
+  bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+  bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+#endif
 
   gobject_class = G_OBJECT_CLASS (klass);
   gobject_class->finalize = xfce_shortcut_dialog_finalize;
@@ -173,7 +176,7 @@ xfce_shortcut_dialog_finalize (GObject *object)
 
 
 
-GtkWidget*
+GtkWidget *
 xfce_shortcut_dialog_new (const gchar *provider,
                           const gchar *action_name,
                           const gchar *action)
@@ -193,21 +196,21 @@ xfce_shortcut_dialog_new (const gchar *provider,
 
 static void
 xfce_shortcut_dialog_create_contents (XfceShortcutDialog *dialog,
-                                      const gchar        *provider,
-                                      const gchar        *action_name,
-                                      const gchar        *action)
+                                      const gchar *provider,
+                                      const gchar *action_name,
+                                      const gchar *action)
 {
-  GtkWidget   *content_box;
-  GtkWidget   *box;
-  GtkWidget   *button;
-  GtkWidget   *label;
+  GtkWidget *content_box;
+  GtkWidget *box;
+  GtkWidget *button;
+  GtkWidget *label;
   const gchar *action_type;
   const gchar *title;
   const gchar *icon_name;
-  const gchar *explanation_label;
   const gchar *text;
   const gchar *format;
-  gchar       *markup;
+  gchar *explanation_label;
+  gchar *markup;
 
   if (g_utf8_collate (provider, "xfwm4") == 0)
     {
@@ -237,8 +240,6 @@ xfce_shortcut_dialog_create_contents (XfceShortcutDialog *dialog,
   /* Set dialog title */
   gtk_window_set_title (GTK_WINDOW (dialog), title);
   gtk_window_set_icon_name (GTK_WINDOW (dialog), icon_name);
-
-  xfce_titled_dialog_create_action_area (XFCE_TITLED_DIALOG (dialog));
 
   /* Create clear button for xfwm4 */
   if (g_utf8_collate (provider, "xfwm4") == 0)
@@ -275,6 +276,7 @@ xfce_shortcut_dialog_create_contents (XfceShortcutDialog *dialog,
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
   gtk_container_add (GTK_CONTAINER (content_box), label);
   gtk_widget_show (label);
+  g_free (explanation_label);
 
   /* Box and labels to display the shortcut currently being grabbed.
    * It will be updated to key-press events. */
@@ -307,11 +309,11 @@ xfce_shortcut_dialog_create_contents (XfceShortcutDialog *dialog,
 
 gint
 xfce_shortcut_dialog_run (XfceShortcutDialog *dialog,
-                          GtkWidget          *parent)
+                          GtkWidget *parent)
 {
-  GdkDisplay       *display;
-  GdkSeat          *seat;
-  gint              response = GTK_RESPONSE_CANCEL;
+  GdkDisplay *display;
+  GdkSeat *seat;
+  gint response = GTK_RESPONSE_CANCEL;
 
   g_return_val_if_fail (XFCE_IS_SHORTCUT_DIALOG (dialog), GTK_RESPONSE_CANCEL);
 
@@ -323,9 +325,11 @@ xfce_shortcut_dialog_run (XfceShortcutDialog *dialog,
 
   /* Take control on the keyboard */
   if (gdk_seat_grab (seat,
-                 gdk_screen_get_root_window (gdk_display_get_default_screen (display)),
-                 GDK_SEAT_CAPABILITY_KEYBOARD, TRUE, NULL, NULL,
-                 xfce_shortcut_dialog_prepare_grab, NULL) == GDK_GRAB_SUCCESS)
+                     parent != NULL ? gtk_widget_get_window (parent)
+                                    : gdk_screen_get_root_window (gdk_display_get_default_screen (display)),
+                     GDK_SEAT_CAPABILITY_KEYBOARD, TRUE, NULL, NULL,
+                     xfce_shortcut_dialog_prepare_grab, NULL)
+      == GDK_GRAB_SUCCESS)
     {
       /* Run the dialog and wait for the user to enter a valid shortcut */
       response = gtk_dialog_run (GTK_DIALOG (dialog));
@@ -353,24 +357,24 @@ xfce_shortcut_dialog_run (XfceShortcutDialog *dialog,
 
 static gboolean
 xfce_shortcut_dialog_key_pressed (XfceShortcutDialog *dialog,
-                                  GdkEventKey        *event)
+                                  GdkEventKey *event)
 {
-  GdkDisplay      *display;
-  GdkKeymap       *keymap;
-  GdkModifierType  consumed, modifiers;
-  guint            keyval, mod_mask;
-  gchar           *text;
-  gchar           *escaped_label;
-  gchar           *label;
-  gchar          **keys;
-  GtkWidget       *key_label;
+  GdkDisplay *display;
+  GdkKeymap *keymap;
+  GdkModifierType consumed, modifiers;
+  guint keyval, mod_mask;
+  gchar *text;
+  gchar *escaped_label;
+  gchar *label;
+  gchar **keys;
+  GtkWidget *key_label;
   GtkStyleContext *context;
-  guint            i;
+  guint i;
 
   /* Clean up */
   g_free (dialog->shortcut);
   gtk_container_foreach (GTK_CONTAINER (dialog->key_box),
-      (GtkCallback) (void (*)(void)) gtk_widget_destroy, NULL);
+                         (GtkCallback) (void (*) (void)) gtk_widget_destroy, NULL);
   gtk_widget_hide (dialog->shortcut_label);
   gtk_widget_show (dialog->key_box);
 
@@ -412,35 +416,34 @@ xfce_shortcut_dialog_key_pressed (XfceShortcutDialog *dialog,
 
   /* Show each key as individual label with the .keycap style class */
   for (i = 0; i < g_strv_length (keys); i++)
-  {
-    text = g_strdup_printf ("<span size='large'>%s</span>",
-                            keys[i]);
-    key_label = gtk_label_new (NULL);
-    gtk_label_set_markup (GTK_LABEL (key_label), text);
-    context = gtk_widget_get_style_context (key_label);
-    gtk_style_context_add_class (context, "keycap");
-    gtk_widget_show (key_label);
-    gtk_container_add (GTK_CONTAINER (dialog->key_box), key_label);
-    g_free (text);
-  }
+    {
+      text = g_strdup_printf ("<span size='large'>%s</span>", keys[i]);
+      key_label = gtk_label_new (NULL);
+      gtk_label_set_markup (GTK_LABEL (key_label), text);
+      context = gtk_widget_get_style_context (key_label);
+      gtk_style_context_add_class (context, "keycap");
+      gtk_widget_show (key_label);
+      gtk_container_add (GTK_CONTAINER (dialog->key_box), key_label);
+      g_free (text);
+    }
 
   g_free (label);
   g_free (escaped_label);
   g_strfreev (keys);
 
-  return FALSE;
+  return TRUE;
 }
 
 
 
 static gboolean
 xfce_shortcut_dialog_key_released (XfceShortcutDialog *dialog,
-                                   GdkEventKey        *event)
+                                   GdkEventKey *event)
 {
-  gboolean    shortcut_accepted = FALSE;
-  GdkWindow  *window = event->window;
+  gboolean shortcut_accepted = FALSE;
+  GdkWindow *window = event->window;
   GdkDisplay *display;
-  GdkSeat    *seat;
+  GdkSeat *seat;
 
   display = gdk_window_get_display (window);
   seat = gdk_display_get_default_seat (display);
@@ -469,12 +472,12 @@ xfce_shortcut_dialog_key_released (XfceShortcutDialog *dialog,
       gtk_widget_hide (dialog->key_box);
     }
 
-  return FALSE;
+  return TRUE;
 }
 
 
 
-const gchar*
+const gchar *
 xfce_shortcut_dialog_get_shortcut (XfceShortcutDialog *dialog)
 {
   g_return_val_if_fail (XFCE_IS_SHORTCUT_DIALOG (dialog), NULL);
@@ -502,9 +505,9 @@ xfce_shortcut_dialog_get_action_name (XfceShortcutDialog *dialog)
 
 
 static void
-xfce_shortcut_dialog_prepare_grab (GdkSeat   *seat,
+xfce_shortcut_dialog_prepare_grab (GdkSeat *seat,
                                    GdkWindow *window,
-                                   gpointer   user_data)
+                                   gpointer user_data)
 {
   gdk_window_show_unraised (window);
 }

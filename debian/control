@@ -12,12 +12,12 @@ Build-Depends: debhelper-compat (= 13),
                libgtk-3-dev,
                libgtop2-dev,
                libstartup-notification0-dev,
-               libxfce4util-dev (>= 4.15.6),
+               libxfce4util-dev (>= 4.17.2),
                libxfconf-0-dev,
-               pkg-config,
+               pkgconf,
                xfce4-dev-tools
 Rules-Requires-Root: no
-Standards-Version: 4.6.0
+Standards-Version: 4.6.2
 Homepage: https://docs.xfce.org/xfce/libxfce4ui/start
 Vcs-Git: https://salsa.debian.org/xfce-team/desktop/libxfce4ui.git
 Vcs-Browser: https://salsa.debian.org/xfce-team/desktop/libxfce4ui

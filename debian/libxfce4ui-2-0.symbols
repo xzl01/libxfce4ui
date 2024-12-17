@@ -17,6 +17,7 @@ libxfce4ui-2.so.0 libxfce4ui-2-0 #MINVER#
  xfce_filename_input_get_text@Base 4.15.2
  xfce_filename_input_get_type@Base 4.15.2
  xfce_filename_input_sensitise_widget@Base 4.15.2
+ xfce_gdk_device_grab@Base 4.17.2
  xfce_gdk_screen_get_active@Base 4.11.0
  xfce_gdk_screen_get_geometry@Base 4.13.5
  xfce_gicon_from_name@Base 4.15.1
@@ -25,11 +26,15 @@ libxfce4ui-2.so.0 libxfce4ui-2-0 #MINVER#
  xfce_gtk_accel_map_add_entries@Base 4.15.3
  xfce_gtk_button_new_mixed@Base 4.11.0
  xfce_gtk_check_menu_item_new@Base 4.15.2
+ xfce_gtk_execute_tab_accel@Base 4.17.3
  xfce_gtk_frame_box_new@Base 4.11.0
  xfce_gtk_frame_box_new_with_content@Base 4.11.0
  xfce_gtk_get_action_entry_by_id@Base 4.15.2
+ xfce_gtk_handle_tab_accels@Base 4.17.3
  xfce_gtk_image_menu_item_new@Base 4.15.2
  xfce_gtk_image_menu_item_new_from_icon_name@Base 4.15.2
+ xfce_gtk_label_set_a11y_relation@Base 4.17.2
+ xfce_gtk_menu_append_separator@Base 4.17.6
  xfce_gtk_menu_append_seperator@Base 4.15.2
  xfce_gtk_menu_item_new@Base 4.15.2
  xfce_gtk_menu_item_new_from_action_entry@Base 4.15.2
@@ -37,6 +42,7 @@ libxfce4ui-2.so.0 libxfce4ui-2-0 #MINVER#
  xfce_gtk_menu_popup_until_mapped@Base 4.13.0
  xfce_gtk_radio_menu_item_new@Base 4.15.2
  xfce_gtk_toggle_menu_item_new_from_action_entry@Base 4.15.2
+ xfce_gtk_toggle_tool_button_new_from_action_entry@Base 4.17.6
  xfce_gtk_tool_button_new_from_action_entry@Base 4.15.2
  xfce_gtk_translate_action_entries@Base 4.15.2
  xfce_gtk_window_center_on_active_screen@Base 4.11.0
@@ -45,6 +51,10 @@ libxfce4ui-2.so.0 libxfce4ui-2-0 #MINVER#
  xfce_message_dialog@Base 4.11.0
  xfce_message_dialog_new@Base 4.11.0
  xfce_message_dialog_new_valist@Base 4.11.0
+ xfce_screensaver_get_type@Base 4.18.2
+ xfce_screensaver_inhibit@Base 4.18.2
+ xfce_screensaver_lock@Base 4.18.2
+ xfce_screensaver_new@Base 4.18.2
  xfce_sm_client_connect@Base 4.11.0
  xfce_sm_client_disconnect@Base 4.11.0
  xfce_sm_client_error_enum_get_type@Base 4.11.0

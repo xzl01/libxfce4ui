@@ -17,19 +17,26 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
 
-#include <gtk/gtk.h>
-#include <libxfce4util/libxfce4util.h>
-#include <libxfce4ui/libxfce4ui.h>
+#ifdef ENABLE_X11
+#include <gdk/gdkx.h>
+#endif
+#ifdef ENABLE_WAYLAND
+#include <gdk/gdkwayland.h>
+#endif
 
-#include "contributors.h"
+#include <gtk/gtk.h>
+#include <libxfce4ui/libxfce4ui.h>
+#include <libxfce4util/libxfce4util.h>
+
 #include "about-dialog-ui.h"
+#include "contributors.h"
 
 #ifdef HAVE_GLIBTOP
 #include "system-info.h"
@@ -47,15 +54,13 @@ typedef struct
   const gchar *icon_name;
   const gchar *display_name;
   const gchar *description;
-}
-AboutModules;
+} AboutModules;
 
 
 
-static gboolean     opt_version = FALSE;
-static GOptionEntry opt_entries[] =
-{
-  { "version", 'V', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_NONE, &opt_version, N_("Version information"), NULL },
+static gboolean opt_version = FALSE;
+static GOptionEntry opt_entries[] = {
+  { "version", 'V', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_NONE, &opt_version, N_ ("Version information"), NULL },
   { NULL }
 };
 
@@ -68,13 +73,44 @@ xfce_about_system (GtkBuilder *builder)
   GObject *vendor_info;
   glibtop_mem mem;
   const glibtop_sysinfo *info;
+  g_autofree char *os_logo = NULL;
   g_autofree char *device_text = NULL;
   g_autofree char *cpu_text = NULL;
   g_autofree char *gpu_text = NULL;
+  g_autofree char *gtk_text = NULL;
+  g_autofree char *kernel_text = NULL;
   g_autofree char *memory_text = NULL;
   g_autofree char *os_name_text = NULL;
   g_autofree char *os_type_text = NULL;
+  const gchar *windowing_system_text = "";
   guint num_gpus = 0;
+
+  glibtop_init ();
+
+  os_logo = get_os_logo ();
+  if (os_logo)
+    {
+      GObject *image = gtk_builder_get_object (builder, "os-logo");
+
+      if (gtk_icon_theme_has_icon (gtk_icon_theme_get_default (), os_logo))
+        gtk_image_set_from_icon_name (GTK_IMAGE (image), os_logo,
+                                      gtk_image_get_pixel_size (GTK_IMAGE (image)));
+      else
+        {
+          const gchar *extensions[] = { "svg", "png" };
+          g_autofree gchar *pixmap_path = g_strconcat ("/usr/share/pixmaps/", os_logo, ".", NULL);
+
+          for (guint i = 0; i < G_N_ELEMENTS (extensions); i++)
+            {
+              g_autofree gchar *path = g_strconcat (pixmap_path, extensions[i], NULL);
+              if (g_file_test (path, G_FILE_TEST_EXISTS))
+                {
+                  gtk_image_set_from_file (GTK_IMAGE (image), path);
+                  break;
+                }
+            }
+        }
+    }
 
   label = gtk_builder_get_object (builder, "device");
   device_text = get_system_info (DEVICE_NAME);
@@ -88,17 +124,37 @@ xfce_about_system (GtkBuilder *builder)
   os_type_text = get_os_type ();
   gtk_label_set_text (GTK_LABEL (label), os_type_text ? os_type_text : "");
 
-  label = gtk_builder_get_object (builder, "xfce-version");
-  gtk_label_set_text (GTK_LABEL (label), xfce_version_string ());
-
   label = gtk_builder_get_object (builder, "vendor-info");
   vendor_info = gtk_builder_get_object (builder, "vendor-info-label");
 #ifdef VENDOR_INFO
   gtk_label_set_text (GTK_LABEL (label), VENDOR_INFO);
+  gtk_widget_show (GTK_WIDGET (vendor_info));
 #else
   gtk_widget_hide (GTK_WIDGET (vendor_info));
   gtk_widget_hide (GTK_WIDGET (label));
 #endif
+
+  label = gtk_builder_get_object (builder, "xfce-version");
+  gtk_label_set_text (GTK_LABEL (label), xfce_version_string ());
+
+  label = gtk_builder_get_object (builder, "gtk-version");
+  gtk_text = g_strdup_printf ("%d.%d.%d", gtk_get_major_version (), gtk_get_minor_version (), gtk_get_micro_version ());
+  gtk_label_set_text (GTK_LABEL (label), gtk_text);
+
+  label = gtk_builder_get_object (builder, "kernel-version");
+  kernel_text = get_system_info (KERNEL);
+  gtk_label_set_text (GTK_LABEL (label), kernel_text ? kernel_text : "");
+
+  label = gtk_builder_get_object (builder, "windowing-system");
+#ifdef ENABLE_X11
+  if (GDK_IS_X11_DISPLAY (gdk_display_get_default ()))
+    windowing_system_text = "X11";
+#endif
+#ifdef ENABLE_WAYLAND
+  if (GDK_IS_WAYLAND_DISPLAY (gdk_display_get_default ()))
+    windowing_system_text = "Wayland";
+#endif
+  gtk_label_set_text (GTK_LABEL (label), windowing_system_text);
 
   label = gtk_builder_get_object (builder, "cpu");
   info = glibtop_get_sysinfo ();
@@ -114,7 +170,7 @@ xfce_about_system (GtkBuilder *builder)
   if (num_gpus > 1)
     {
       label = gtk_builder_get_object (builder, "gpu-label");
-      gtk_label_set_text (GTK_LABEL (label), _("GPUs"));
+      gtk_label_set_text (GTK_LABEL (label), _( "GPUs"));
     }
   label = gtk_builder_get_object (builder, "gpu");
   gtk_label_set_markup (GTK_LABEL (label), gpu_text ? gpu_text : "");
@@ -126,77 +182,65 @@ xfce_about_system (GtkBuilder *builder)
 static void
 xfce_about_about (GtkWidget *vbox)
 {
-  guint                i;
-  AboutModules        *info;
-  static AboutModules  xfce_about_info[] =
-    {
-      { "xfwm4",
-        "org.xfce.xfwm4",
-        N_("Window Manager"),
-        N_("Handles the placement of windows on the screen.")
-      },
-      { "xfce4-panel",
-        "org.xfce.panel",
-        N_("Panel"),
-        N_("Provides a home for window buttons, launchers, app menu and more.")
-      },
-      { "xfdesktop",
-        "org.xfce.xfdesktop",
-        N_("Desktop Manager"),
-        N_("Sets desktop backgrounds, handles icons and more.")
-      },
-      { "thunar",
-        "org.xfce.thunar",
-        N_("File Manager"),
-        N_("Manages your files in a modern, easy-to-use and fast way.")
-      },
-      { "thunar-volman",
-        "org.xfce.volman",
-        N_("Volume Manager"),
-        N_("Manages removable drives and media for Thunar.")
-      },
-      { "xfce4-session",
-        "org.xfce.session",
-        N_("Session Manager"),
-        N_("Saves and restores your session, handles startup, autostart and shutdown.")
-      },
-      { "xfce4-settings",
-        "org.xfce.settings.manager",
-        N_("Setting System"),
-        N_("Configures appearance, display, keyboard and mouse settings.")
-      },
-      { "xfce4-appfinder",
-        "org.xfce.appfinder",
-        N_("Application Finder"),
-        N_("Quickly finds and launches applications installed on your system.")
-      },
-      { "xfconf",
-        "org.xfce.settings.editor",
-        N_("Settings Daemon"),
-        N_("Stores your settings in a D-Bus-based configuration system.")
-      },
-      { "garcon",
-        "org.xfce.garcon",
-        N_("A Menu Library"),
-        N_("Implements a freedesktop.org compliant menu based on GLib and GIO.")
-      },
-      { "tumbler",
-        "org.xfce.tumbler",
-        N_("Thumbnails Service"),
-        N_("Implements the thumbnail management D-Bus specification.")
-      }
-    };
+  guint i;
+  AboutModules *info;
+  static AboutModules xfce_about_info[] = {
+    { "xfwm4",
+      "org.xfce.xfwm4",
+      N_ ("Window Manager"),
+      N_ ("Handles the placement of windows on the screen.") },
+    { "xfce4-panel",
+      "org.xfce.panel",
+      N_ ("Panel"),
+      N_ ("Provides a home for window buttons, launchers, app menu and more.") },
+    { "xfdesktop",
+      "org.xfce.xfdesktop",
+      N_ ("Desktop Manager"),
+      N_ ("Sets desktop backgrounds, handles icons and more.") },
+    { "thunar",
+      "org.xfce.thunar",
+      N_ ("File Manager"),
+      N_ ("Manages your files in a modern, easy-to-use and fast way.") },
+    { "thunar-volman",
+      "org.xfce.volman",
+      N_ ("Volume Manager"),
+      N_ ("Manages removable drives and media for Thunar.") },
+    { "xfce4-session",
+      "org.xfce.session",
+      N_ ("Session Manager"),
+      N_ ("Saves and restores your session, handles startup, autostart and shutdown.") },
+    { "xfce4-settings",
+      "org.xfce.settings.manager",
+      N_ ("Settings Manager"),
+      N_ ("Configures appearance, display, keyboard and mouse settings.") },
+    { "xfce4-appfinder",
+      "org.xfce.appfinder",
+      N_ ("Application Finder"),
+      N_ ("Quickly finds and launches applications installed on your system.") },
+    { "xfconf",
+      "org.xfce.settings.editor",
+      N_ ("Settings Daemon"),
+      N_ ("Stores your settings in a D-Bus-based configuration system.") },
+    { "garcon",
+      "org.xfce.garcon",
+      N_ ("A Menu Library"),
+      N_ ("Implements a freedesktop.org compliant menu based on GLib and GIO.") },
+    { "tumbler",
+      "org.xfce.tumbler",
+      N_ ("Thumbnails Service"),
+      N_ ("Implements the thumbnail management D-Bus specification.") }
+  };
 
   g_return_if_fail (GTK_IS_BOX (vbox));
 
   for (i = 0; i < G_N_ELEMENTS (xfce_about_info); i++)
     {
-      GtkWidget     *grid;
-      GtkWidget     *image;
-      GtkWidget     *component;
-      GtkWidget     *description;
-      const gchar   *format;
-      gchar         *str;
+      GtkWidget *grid;
+      GtkWidget *image;
+      GtkWidget *component;
+      GtkWidget *description;
+      const gchar *format;
+      gchar *str;
 
       info = xfce_about_info + i;
       format = "<b>%s</b> (<a href='%s%s%s'>%s</a>)";
@@ -237,7 +281,7 @@ xfce_about_credits_translators (GtkTextBuffer *buffer, GtkTextIter *end)
 {
   gtk_text_buffer_get_end_iter (buffer, end);
   gtk_text_buffer_insert (buffer, end,
-      _("Please see <https://www.xfce.org/about/credits>"), -1);
+                          _("Please see <https://www.xfce.org/about/credits>"), -1);
   gtk_text_buffer_insert (buffer, end, "\n\n", -1);
 }
 
@@ -246,16 +290,17 @@ xfce_about_credits_translators (GtkTextBuffer *buffer, GtkTextIter *end)
 static void
 xfce_about_credits (GtkTextBuffer *buffer)
 {
-  guint                   i;
-  GtkTextTag             *title;
-  GtkTextTag             *indent;
-  GtkTextIter             end;
+  guint i;
+  GtkTextTag *title;
+  GtkTextTag *indent;
+  GtkTextIter end;
   const ContributorGroup *group;
-  const ContributorInfo  *user;
+  const ContributorInfo *user;
 
   g_return_if_fail (GTK_IS_TEXT_BUFFER (buffer));
 
   title = gtk_text_buffer_create_tag (buffer, "title",
+                                      "pixels-below-lines", 6,
                                       "scale", 1.1,
                                       "weight", PANGO_WEIGHT_BOLD, NULL);
 
@@ -277,14 +322,7 @@ xfce_about_credits (GtkTextBuffer *buffer)
           for (user = group->contributors; user->name != NULL; user++)
             {
               gtk_text_buffer_insert_with_tags (buffer, &end, user->name, -1, indent, NULL);
-              if (g_strcmp0 (user->email, "") != 0)
-                {
-                  gtk_text_buffer_insert (buffer, &end, " <", -1);
-                  gtk_text_buffer_insert (buffer, &end, user->email, -1);
-                  gtk_text_buffer_insert (buffer, &end, ">\n", -1);
-                }
-              else
-                gtk_text_buffer_insert (buffer, &end, "\n", -1);
+              gtk_text_buffer_insert (buffer, &end, "\n", -1);
             }
         }
       else
@@ -297,11 +335,12 @@ xfce_about_credits (GtkTextBuffer *buffer)
     }
 
   gtk_text_buffer_insert (buffer, &end,
-      _("If you know of anyone missing from this list; don't hesitate and "
-        "file a bug on <https://gitlab.xfce.org/xfce/libxfce4ui/-/issues> ."), -1);
+                          _("If you know of anyone missing from this list; don't hesitate and "
+                            "file a bug on <https://gitlab.xfce.org/xfce/libxfce4ui/-/issues> ."),
+                          -1);
   gtk_text_buffer_insert (buffer, &end, "\n\n", -1);
   gtk_text_buffer_insert_with_tags (buffer, &end,
-      _("Thanks to all who helped making this software available!"), -1, title, NULL);
+                                    _("Thanks to all who helped making this software available!"), -1, title, NULL);
 
   gtk_text_buffer_insert (buffer, &end, "\n", -1);
 }
@@ -318,23 +357,26 @@ xfce_about_copyright (GtkTextBuffer *buffer)
   gtk_text_buffer_get_end_iter (buffer, &end);
 
   gtk_text_buffer_insert (buffer, &end,
-      _("Xfce 4 is copyright Olivier Fourdan (fourdan@xfce.org). The different "
-        "components are copyrighted by their respective authors."), -1);
+                          _("Xfce 4 is copyright Olivier Fourdan (fourdan@xfce.org). The different "
+                            "components are copyrighted by their respective authors."),
+                          -1);
 
   gtk_text_buffer_insert (buffer, &end, "\n\n", -1);
   gtk_text_buffer_insert (buffer, &end,
-      _("The libxfce4ui, libxfce4util and exo packages are "
-        "distributed under the terms of the GNU Library General Public License as "
-        "published by the Free Software Foundation; either version 2 of the License, or "
-        "(at your option) any later version."), -1);
+                          _("The libxfce4ui, libxfce4util and exo packages are "
+                            "distributed under the terms of the GNU Library General Public License as "
+                            "published by the Free Software Foundation; either version 2 of the License, or "
+                            "(at your option) any later version."),
+                          -1);
 
   gtk_text_buffer_insert (buffer, &end, "\n\n", -1);
   gtk_text_buffer_insert (buffer, &end,
-      _("The packages thunar, xfce4-appfinder, xfce4-panel, xfce4-session, "
-        "xfce4-settings, xfconf, xfdesktop and xfwm4 are "
-        "distributed under the terms of the GNU General Public License as "
-        "published by the Free Software Foundation; either version 2 of the "
-        "License, or (at your option) any later version."), -1);
+                          _("The packages thunar, xfce4-appfinder, xfce4-panel, xfce4-session, "
+                            "xfce4-settings, xfconf, xfdesktop and xfwm4 are "
+                            "distributed under the terms of the GNU General Public License as "
+                            "published by the Free Software Foundation; either version 2 of the "
+                            "License, or (at your option) any later version."),
+                          -1);
 
   gtk_text_buffer_insert (buffer, &end, "\n", -1);
 }
@@ -345,10 +387,10 @@ xfce_about_copyright (GtkTextBuffer *buffer)
 static void
 xfce_about_vendor (GtkBuilder *builder)
 {
-  gchar   *contents;
-  gchar   *filename;
+  gchar *contents;
+  gchar *filename;
   GObject *object;
-  gsize    length;
+  gsize length;
 
   g_return_if_fail (GTK_IS_BUILDER (builder));
 
@@ -357,7 +399,7 @@ xfce_about_vendor (GtkBuilder *builder)
     {
       if (length > 0)
         {
-          if (g_utf8_validate(contents, length, NULL))
+          if (g_utf8_validate (contents, length, NULL))
             {
               object = gtk_builder_get_object (builder, "vendor-buffer");
               gtk_text_buffer_set_text (GTK_TEXT_BUFFER (object), contents, length);
@@ -389,11 +431,11 @@ xfce_about_vendor (GtkBuilder *builder)
 
 static void
 xfce_about_license (GtkBuilder *builder,
-                    GObject    *buffer)
+                    GObject *buffer)
 {
-  GObject         *dialog;
-  GObject         *object;
-  static gboolean  initial = TRUE;
+  GObject *dialog;
+  GObject *object;
+  static gboolean initial = TRUE;
 
   g_return_if_fail (GTK_IS_BUILDER (builder));
   g_return_if_fail (GTK_IS_TEXT_BUFFER (buffer));
@@ -405,11 +447,11 @@ xfce_about_license (GtkBuilder *builder,
   if (initial)
     {
       g_signal_connect (G_OBJECT (dialog), "delete-event",
-           G_CALLBACK (gtk_widget_hide_on_delete), NULL);
+                        G_CALLBACK (gtk_widget_hide_on_delete), NULL);
 
       object = gtk_builder_get_object (builder, "license-close-button");
       g_signal_connect_swapped (G_OBJECT (object), "clicked",
-          G_CALLBACK (gtk_widget_hide), dialog);
+                                G_CALLBACK (gtk_widget_hide), dialog);
 
       object = gtk_builder_get_object (builder, "window");
       gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (object));
@@ -426,7 +468,7 @@ static void
 xfce_about_license_gpl (GtkBuilder *builder)
 {
   xfce_about_license (builder,
-      gtk_builder_get_object (builder, "gpl-buffer"));
+                      gtk_builder_get_object (builder, "gpl-buffer"));
 }
 
 
@@ -435,7 +477,7 @@ static void
 xfce_about_license_lgpl (GtkBuilder *builder)
 {
   xfce_about_license (builder,
-      gtk_builder_get_object (builder, "lgpl-buffer"));
+                      gtk_builder_get_object (builder, "lgpl-buffer"));
 }
 
 
@@ -444,7 +486,7 @@ static void
 xfce_about_license_bsd (GtkBuilder *builder)
 {
   xfce_about_license (builder,
-      gtk_builder_get_object (builder, "bsd-buffer"));
+                      gtk_builder_get_object (builder, "bsd-buffer"));
 }
 
 
@@ -461,13 +503,13 @@ xfce_about_help (GtkWidget *button,
 
 
 gint
-main (gint    argc,
+main (gint argc,
       gchar **argv)
 {
   GtkBuilder *builder;
-  GError     *error = NULL;
-  GObject    *dialog;
-  GObject    *object;
+  GError *error = NULL;
+  GObject *dialog;
+  GObject *object;
 
   xfce_textdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR, "UTF-8");
 
@@ -490,7 +532,7 @@ main (gint    argc,
   if (G_UNLIKELY (opt_version))
     {
       g_print ("%s %s (Xfce %s)\n\n", G_LOG_DOMAIN, PACKAGE_VERSION, xfce_version_string ());
-      g_print ("%s\n", "Copyright (c) 2008-2019");
+      g_print ("%s\n", "Copyright (c) 2008-2024");
       g_print ("\t%s\n\n", _("The Xfce development team. All rights reserved."));
       g_print (_("Please report bugs to <%s>."), PACKAGE_BUGREPORT);
       g_print ("\n");
@@ -511,7 +553,7 @@ main (gint    argc,
 
   dialog = gtk_builder_get_object (builder, "window");
   g_signal_connect_swapped (G_OBJECT (dialog), "delete-event",
-      G_CALLBACK (gtk_main_quit), NULL);
+                            G_CALLBACK (gtk_main_quit), NULL);
 
 #ifdef HAVE_GLIBTOP
   xfce_about_system (builder);
@@ -535,23 +577,23 @@ main (gint    argc,
 
   object = gtk_builder_get_object (builder, "gpl-button");
   g_signal_connect_swapped (G_OBJECT (object), "clicked",
-      G_CALLBACK (xfce_about_license_gpl), builder);
+                            G_CALLBACK (xfce_about_license_gpl), builder);
 
   object = gtk_builder_get_object (builder, "lgpl-button");
   g_signal_connect_swapped (G_OBJECT (object), "clicked",
-      G_CALLBACK (xfce_about_license_lgpl), builder);
+                            G_CALLBACK (xfce_about_license_lgpl), builder);
 
   object = gtk_builder_get_object (builder, "bsd-button");
   g_signal_connect_swapped (G_OBJECT (object), "clicked",
-      G_CALLBACK (xfce_about_license_bsd), builder);
+                            G_CALLBACK (xfce_about_license_bsd), builder);
 
   object = gtk_builder_get_object (builder, "help-button");
   g_signal_connect (G_OBJECT (object), "clicked",
-      G_CALLBACK (xfce_about_help), dialog);
+                    G_CALLBACK (xfce_about_help), dialog);
 
   object = gtk_builder_get_object (builder, "close-button");
   g_signal_connect_swapped (G_OBJECT (object), "clicked",
-      G_CALLBACK (gtk_main_quit), NULL);
+                            G_CALLBACK (gtk_main_quit), NULL);
 
   gtk_widget_show (GTK_WIDGET (dialog));
 

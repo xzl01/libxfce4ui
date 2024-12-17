@@ -28,18 +28,10 @@ dist-hook: ChangeLog
 
 EXTRA_DIST = \
 	README.md \
-	intltool-extract.in \
-	intltool-merge.in \
-	intltool-update.in \
 	m4/introspection.m4 \
 	m4/vapigen.m4
 
-DISTCLEANFILES = \
-	intltool-extract \
-	intltool-merge \
-	intltool-update
-
-DISTCHECK_CONFIGURE_FLAGS = \
+AM_DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-gtk-doc \
 	--disable-gladeui2 \
 	--enable-introspection \

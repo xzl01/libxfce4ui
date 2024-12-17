@@ -29,7 +29,7 @@
  **/
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 
 #ifdef HAVE_STRING_H
@@ -45,9 +45,9 @@
 #include <gtk/gtk.h>
 #include <libxfce4util/libxfce4util.h>
 
-#include <libxfce4ui/xfce-filename-input.h>
-#include <libxfce4ui/libxfce4ui-private.h>
-#include <libxfce4ui/libxfce4ui-alias.h>
+#include "libxfce4ui-private.h"
+#include "xfce-filename-input.h"
+#include "libxfce4ui-alias.h"
 
 /* Property identifiers */
 enum
@@ -68,16 +68,24 @@ enum
 
 
 
-static void     xfce_filename_input_set_property  (GObject      *object,
-                                                   guint         prop_id,
-                                                   const GValue *value,
-                                                   GParamSpec   *pspec);
-static void     xfce_filename_input_finalize      (GObject      *object);
-static void     xfce_filename_input_entry_changed (GtkEditable  *editable,
-                                                   gpointer      data);
-static gboolean xfce_filename_input_entry_undo    (GtkWidget    *widget,
-                                                   GdkEvent     *event,
-                                                   gpointer      data);
+static void
+xfce_filename_input_set_property (GObject *object,
+                                  guint prop_id,
+                                  const GValue *value,
+                                  GParamSpec *pspec);
+static void
+xfce_filename_input_finalize (GObject *object);
+static void
+xfce_filename_input_entry_changed (GtkEditable *editable,
+                                   gpointer data);
+static gboolean
+xfce_filename_input_entry_undo (GtkWidget *widget,
+                                GdkEvent *event,
+                                gpointer data);
+static gboolean
+xfce_filename_input_whitespace_warning_timer (gpointer data);
+static void
+xfce_filename_input_whitespace_warning_timer_destroy (gpointer data);
 
 
 
@@ -86,22 +94,33 @@ struct _XfceFilenameInputClass
   GtkBoxClass parent;
 
   /* signals */
-  void (*text_valid)   (XfceFilenameInput *filename_input);
+  void (*text_valid) (XfceFilenameInput *filename_input);
   void (*text_invalid) (XfceFilenameInput *filename_input);
 };
 
+/**
+ * XfceFilenameInput:
+ *
+ * An opaque structure with only private fields.
+ **/
 struct _XfceFilenameInput
 {
-  GtkBox    parent;
+  GtkBox parent;
 
   GtkEntry *entry;
   GtkLabel *label;
 
-  GRegex   *whitespace_regex;
-  GRegex   *dir_sep_regex;
+  GRegex *whitespace_regex;
+  GRegex *dir_sep_regex;
 
-  gint     max_text_length;
-  gchar    *original_filename;
+  gint max_text_length;
+  gchar *original_filename;
+
+  gchar *too_long_mssg;
+  gchar *sep_illegal_mssg;
+  gchar *whitespace_mssg;
+
+  guint whitespace_warning_timer_id;
 };
 
 static guint signals[N_SIGS];
@@ -113,7 +132,7 @@ G_DEFINE_TYPE (XfceFilenameInput, xfce_filename_input, GTK_TYPE_BOX)
 static void
 xfce_filename_input_class_init (XfceFilenameInputClass *klass)
 {
-  GObjectClass *gobject_class = (GObjectClass *)klass;
+  GObjectClass *gobject_class = (GObjectClass *) klass;
 
   gobject_class->finalize = xfce_filename_input_finalize;
   gobject_class->set_property = xfce_filename_input_set_property;
@@ -129,12 +148,12 @@ xfce_filename_input_class_init (XfceFilenameInputClass *klass)
    *
    **/
   g_object_class_install_property (gobject_class,
-      PROP_ORIGINAL_FILENAME,
-      g_param_spec_string ("original-filename",
-                           "original-filename",
-                           "The original filename",
-                           NULL,
-                           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+                                   PROP_ORIGINAL_FILENAME,
+                                   g_param_spec_string ("original-filename",
+                                                        "original-filename",
+                                                        "The original filename",
+                                                        NULL,
+                                                        G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 
   /**
    * XfceFilenameInput:max-text-length:
@@ -146,12 +165,12 @@ xfce_filename_input_class_init (XfceFilenameInputClass *klass)
    *
    **/
   g_object_class_install_property (gobject_class,
-      PROP_MAX_TEXT_LENGTH,
-      g_param_spec_int ("max-text-length",
-                        "max-text-length",
-                        "Maximum permitted length of a filename",
-                        -1, G_MAXINT, -1,
-                        G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+                                   PROP_MAX_TEXT_LENGTH,
+                                   g_param_spec_int ("max-text-length",
+                                                     "max-text-length",
+                                                     "Maximum permitted length of a filename",
+                                                     -1, G_MAXINT, -1,
+                                                     G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 
   /**
    * XfceFilenameInput::text-valid:
@@ -164,13 +183,13 @@ xfce_filename_input_class_init (XfceFilenameInputClass *klass)
    * Since: 4.16
    *
    **/
-  signals[SIG_TEXT_VALID] = g_signal_new  ("text-valid",
-                                           G_TYPE_FROM_CLASS (klass),
-                                           G_SIGNAL_RUN_LAST,
-                                           G_STRUCT_OFFSET (XfceFilenameInputClass,
-                                                            text_valid),
-                                           NULL, NULL, NULL,
-                                           G_TYPE_NONE, 0);
+  signals[SIG_TEXT_VALID] = g_signal_new ("text-valid",
+                                          G_TYPE_FROM_CLASS (klass),
+                                          G_SIGNAL_RUN_LAST,
+                                          G_STRUCT_OFFSET (XfceFilenameInputClass,
+                                                           text_valid),
+                                          NULL, NULL, NULL,
+                                          G_TYPE_NONE, 0);
 
   /**
    * XfceFilenameInput::text-invalid:
@@ -183,13 +202,13 @@ xfce_filename_input_class_init (XfceFilenameInputClass *klass)
    * Since: 4.16
    *
    **/
-  signals[SIG_TEXT_VALID] = g_signal_new  ("text-invalid",
-                                           G_TYPE_FROM_CLASS (klass),
-                                           G_SIGNAL_RUN_LAST,
-                                           G_STRUCT_OFFSET (XfceFilenameInputClass,
-                                                            text_invalid),
-                                           NULL, NULL, NULL,
-                                           G_TYPE_NONE, 0);
+  signals[SIG_TEXT_VALID] = g_signal_new ("text-invalid",
+                                          G_TYPE_FROM_CLASS (klass),
+                                          G_SIGNAL_RUN_LAST,
+                                          G_STRUCT_OFFSET (XfceFilenameInputClass,
+                                                           text_invalid),
+                                          NULL, NULL, NULL,
+                                          G_TYPE_NONE, 0);
 }
 
 static void
@@ -210,16 +229,21 @@ xfce_filename_input_init (XfceFilenameInput *filename_input)
   gtk_container_set_border_width (GTK_CONTAINER (filename_input), 2);
 
   /* set up the GtkEntry for the input */
-  filename_input->entry = GTK_ENTRY (gtk_entry_new());
+  filename_input->entry = GTK_ENTRY (gtk_entry_new ());
   gtk_widget_set_hexpand (GTK_WIDGET (filename_input->entry), TRUE);
   gtk_widget_set_valign (GTK_WIDGET (filename_input->entry), GTK_ALIGN_CENTER);
   gtk_box_pack_start (GTK_BOX (filename_input), GTK_WIDGET (filename_input->entry), FALSE, FALSE, 0);
 
+  /* retrieve the error and warning messages */
+  filename_input->too_long_mssg = _("Filename is too long");
+  filename_input->sep_illegal_mssg = _("Directory separator illegal in file name");
+  filename_input->whitespace_mssg = _("Filenames should not start or end with a space");
+
   /* set up the GtkLabel to display any error or warning messages */
-  filename_input->label = GTK_LABEL (gtk_label_new(""));
+  filename_input->label = GTK_LABEL (gtk_label_new (""));
   gtk_label_set_xalign (filename_input->label, 0.0f);
-  gtk_widget_set_hexpand (GTK_WIDGET (filename_input->label), TRUE);
   gtk_box_pack_start (GTK_BOX (filename_input), GTK_WIDGET (filename_input->label), FALSE, FALSE, 0);
+  gtk_label_set_line_wrap (filename_input->label, TRUE);
 
   /* allow reverting the filename with ctrl + z */
   g_signal_connect (filename_input->entry, "key-press-event",
@@ -231,18 +255,18 @@ xfce_filename_input_init (XfceFilenameInput *filename_input)
 }
 
 static void
-xfce_filename_input_set_property (GObject      *object,
-                                  guint         prop_id,
+xfce_filename_input_set_property (GObject *object,
+                                  guint prop_id,
                                   const GValue *value,
-                                  GParamSpec   *pspec)
+                                  GParamSpec *pspec)
 {
   XfceFilenameInput *filename_input = XFCE_FILENAME_INPUT (object);
-  const gchar       *filename;
+  const gchar *filename;
 
   switch (prop_id)
     {
     case PROP_ORIGINAL_FILENAME:
-      filename =  g_value_get_string (value);
+      filename = g_value_get_string (value);
       if (filename == NULL)
         return;
 
@@ -264,6 +288,10 @@ xfce_filename_input_finalize (GObject *object)
 {
   XfceFilenameInput *filename_input = XFCE_FILENAME_INPUT (object);
 
+  /* cancel any pending timer */
+  if (filename_input->whitespace_warning_timer_id != 0)
+    g_source_remove (filename_input->whitespace_warning_timer_id);
+
   g_regex_unref (filename_input->whitespace_regex);
   g_regex_unref (filename_input->dir_sep_regex);
 
@@ -283,7 +311,7 @@ xfce_filename_input_finalize (GObject *object)
  * Since: 4.16
  *
  **/
-const gchar*
+const gchar *
 xfce_filename_input_get_text (XfceFilenameInput *filename_input)
 {
   g_return_val_if_fail (XFCE_IS_FILENAME_INPUT (filename_input), NULL);
@@ -325,7 +353,7 @@ xfce_filename_input_check (XfceFilenameInput *filename_input)
  * Since: 4.16
  *
  **/
-GtkEntry*
+GtkEntry *
 xfce_filename_input_get_entry (XfceFilenameInput *filename_input)
 {
   g_return_val_if_fail (XFCE_IS_FILENAME_INPUT (filename_input), NULL);
@@ -369,18 +397,18 @@ xfce_filename_input_desensitise_widget (GtkWidget *widget)
 
 static void
 xfce_filename_input_entry_changed (GtkEditable *editable,
-                                   gpointer     data)
+                                   gpointer data)
 {
   XfceFilenameInput *filename_input;
-  GtkEntry          *entry;
-  GtkLabel          *label;
+  GtkEntry *entry;
+  GtkLabel *label;
 
-  gint               text_length;
-  const gchar       *text;
-  const gchar       *label_text = "";
-  const gchar       *icon_name = NULL;
-  gboolean           new_text_valid = TRUE;
-  gboolean           match_ws, match_ds;
+  gint text_length;
+  const gchar *text;
+  const gchar *label_text = "";
+  const gchar *icon_name = NULL;
+  gboolean new_text_valid = TRUE;
+  gboolean match_ws, match_ds;
 
   g_return_if_fail (GTK_IS_ENTRY (editable));
   entry = GTK_ENTRY (editable);
@@ -388,6 +416,10 @@ xfce_filename_input_entry_changed (GtkEditable *editable,
   g_return_if_fail (XFCE_IS_FILENAME_INPUT (data));
   filename_input = XFCE_FILENAME_INPUT (data);
   label = filename_input->label;
+
+  /* cancel any pending timer to display a warning about the text starting or ending with whitespace */
+  if (filename_input->whitespace_warning_timer_id != 0)
+    g_source_remove (filename_input->whitespace_warning_timer_id);
 
   /* get the string representing the current text of the GtkEntry */
   text_length = gtk_entry_get_text_length (entry);
@@ -411,24 +443,29 @@ xfce_filename_input_entry_changed (GtkEditable *editable,
   else if (match_ds)
     {
       /* the string contains a directory separator */
-      label_text = _("Directory separator illegal in file name");
+      label_text = filename_input->sep_illegal_mssg;
       icon_name = "dialog-error";
       new_text_valid = FALSE;
     }
   else if (filename_input->max_text_length != -1 && /* max_text_length = -1 means no maximum */
-          text_length > filename_input->max_text_length)
+           text_length > filename_input->max_text_length)
     {
       /* the string is too long */
-      label_text = _("Filename is too long");
+      label_text = filename_input->too_long_mssg;
       icon_name = "dialog-error";
       new_text_valid = FALSE;
     }
   else if (match_ws)
     {
       /* the string starts or ends with whitespace
-       * this does not make the filename invalid, but we warn the user about it */
-      label_text = _("Filenames should not start or end with a space");
-      icon_name = "dialog-warning";
+       * this does not make the filename invalid, but we set a timer so that the user will be warned about this if
+         the input remains unchanged for a time */
+      filename_input->whitespace_warning_timer_id = g_timeout_add_full (G_PRIORITY_DEFAULT, 1000,
+                                                                        xfce_filename_input_whitespace_warning_timer,
+                                                                        filename_input,
+                                                                        xfce_filename_input_whitespace_warning_timer_destroy);
+      icon_name = NULL;
+      label_text = "";
       new_text_valid = TRUE;
     }
 
@@ -447,12 +484,12 @@ xfce_filename_input_entry_changed (GtkEditable *editable,
 }
 
 static gboolean
-xfce_filename_input_entry_undo (GtkWidget  *widget,
-                                GdkEvent   *event,
-                                gpointer    data)
+xfce_filename_input_entry_undo (GtkWidget *widget,
+                                GdkEvent *event,
+                                gpointer data)
 {
-  guint              keyval;
-  GdkModifierType    state;
+  guint keyval;
+  GdkModifierType state;
   XfceFilenameInput *filename_input;
 
   g_return_val_if_fail (XFCE_IS_FILENAME_INPUT (data), GDK_EVENT_PROPAGATE);
@@ -463,8 +500,7 @@ xfce_filename_input_entry_undo (GtkWidget  *widget,
     return GDK_EVENT_PROPAGATE;
 
   /* extract the keyval and state from the event */
-  if (G_UNLIKELY (!gdk_event_get_keyval (event, &keyval) ||
-                  !gdk_event_get_state (event, &state)))
+  if (G_UNLIKELY (!gdk_event_get_keyval (event, &keyval) || !gdk_event_get_state (event, &state)))
     return GDK_EVENT_PROPAGATE;
 
   /* if the user pressed ctrl + z, reset the text to the original filename */
@@ -478,5 +514,30 @@ xfce_filename_input_entry_undo (GtkWidget  *widget,
   return GDK_EVENT_PROPAGATE;
 }
 
+static gboolean
+xfce_filename_input_whitespace_warning_timer (gpointer data)
+{
+  XfceFilenameInput *filename_input;
+
+  g_return_val_if_fail (XFCE_IS_FILENAME_INPUT (data), FALSE);
+  filename_input = XFCE_FILENAME_INPUT (data);
+
+  /* update the icon in the GtkEntry and the message in the GtkLabel */
+  gtk_entry_set_icon_from_icon_name (filename_input->entry,
+                                     GTK_ENTRY_ICON_SECONDARY,
+                                     "dialog-warning");
+  gtk_label_set_text (filename_input->label, filename_input->whitespace_mssg);
+
+  return FALSE;
+}
+
+static void
+xfce_filename_input_whitespace_warning_timer_destroy (gpointer data)
+{
+  g_return_if_fail (XFCE_IS_FILENAME_INPUT (data));
+
+  XFCE_FILENAME_INPUT (data)->whitespace_warning_timer_id = 0;
+}
+
 #define __XFCE_FILENAME_INPUT_C__
-#include <libxfce4ui/libxfce4ui-aliasdef.c>
+#include "libxfce4ui-aliasdef.c"

@@ -14,15 +14,15 @@ AM_CPPFLAGS = \
 	$(PLATFORM_CPPFLAGS)
 
 libxfce4ui_enum_headers = \
-	xfce-sm-client.h
+	libxfce4ui-enums.h
 
 libxfce4ui_headers = \
-	libxfce4ui.h \
 	libxfce4ui-config.h \
 	libxfce4ui-enum-types.h \
 	xfce-dialogs.h \
 	xfce-gdk-extensions.h \
 	xfce-gtk-extensions.h \
+	xfce-screensaver.h \
 	xfce-spawn.h \
 	xfce-filename-input.h \
 	xfce-titled-dialog.h \
@@ -46,33 +46,15 @@ libxfce4ui_sources = \
 	xfce-dialogs.c \
 	xfce-gdk-extensions.c \
 	xfce-gtk-extensions.c \
-	xfce-sm-client.c \
+	xfce-screensaver.c \
 	xfce-spawn.c \
 	xfce-filename-input.c \
 	xfce-titled-dialog.c
 
-##
-## GTK+ 3 support library
-##
-
-libxfce4ui2_includedir = \
-	$(includedir)/xfce4/libxfce4ui-2/libxfce4ui
-
-libxfce4ui2_include_HEADERS = \
-	$(libxfce4ui_headers)
-
-lib_LTLIBRARIES += \
-	libxfce4ui-2.la
-
-libxfce4ui_2_la_SOURCES = \
-	$(libxfce4ui_sources)
-
 libxfce4ui_2_la_CFLAGS = \
-	$(LIBSM_CFLAGS) \
 	$(GDK_CFLAGS) \
 	$(GTK3_CFLAGS) \
-	$(LIBX11_CFLAGS) \
-	$(LIBSTARTUP_NOTIFICATION_CFLAGS) \
+	$(XFCONF_CFLAGS) \
 	$(LIBXFCE4UTIL_CFLAGS) \
 	$(PLATFORM_CFLAGS)
 
@@ -80,17 +62,52 @@ libxfce4ui_2_la_LDFLAGS = \
 	-version-info $(LIBXFCE4UI_VERINFO) \
 	-export-symbols-regex "^[^_].*" \
 	-no-undefined \
-	$(LIBSM_LDFLAGS) \
-	$(LIBX11_LDFLAGS) \
 	$(PLATFORM_LDFLAGS)
 
 libxfce4ui_2_la_LIBADD = \
-	$(LIBSM_LIBS) \
 	$(GDK_LIBS) \
 	$(GTK3_LIBS) \
-	$(LIBX11_LIBS) \
-	$(LIBSTARTUP_NOTIFICATION_LIBS) \
+	$(XFCONF_LIBS) \
 	$(LIBXFCE4UTIL_LIBS)
+
+if ENABLE_X11
+libxfce4ui_headers += \
+	xfce-clipboard-manager.h \
+	xfce-sm-client.h
+
+libxfce4ui_sources += \
+	xfce-clipboard-manager.c \
+	xfce-clipboard-manager.h \
+	xfce-sm-client.c \
+	xfce-sm-client.h
+
+libxfce4ui_2_la_CFLAGS += \
+	$(LIBICE_CFLAGS) \
+	$(LIBSM_CFLAGS) \
+	$(LIBX11_CFLAGS) \
+	$(LIBSTARTUP_NOTIFICATION_CFLAGS)
+
+libxfce4ui_2_la_LIBADD += \
+	$(LIBICE_LIBS) \
+	$(LIBSM_LIBS) \
+	$(LIBX11_LIBS) \
+	$(LIBSTARTUP_NOTIFICATION_LIBS)
+endif
+
+libxfce4ui2_includedir = \
+	$(includedir)/xfce4/libxfce4ui-2/libxfce4ui
+
+libxfce4ui2_include_HEADERS = \
+	$(libxfce4ui_headers)
+
+nodist_libxfce4ui2_include_HEADERS = \
+	libxfce4ui.h
+
+lib_LTLIBRARIES += \
+	libxfce4ui-2.la
+
+libxfce4ui_2_la_SOURCES = \
+	$(libxfce4ui_sources)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA += \
@@ -118,7 +135,7 @@ INTROSPECTION_COMPILER_ARGS = \
 	--includedir=.
 
 if HAVE_INTROSPECTION
-introspection_sources = $(libxfce4ui_2_la_SOURCES)
+introspection_sources = $(filter-out %private.h, $(libxfce4ui_2_la_SOURCES))
 
 Libxfce4ui-2.0.gir: libxfce4ui-2.la Makefile
 Libxfce4ui_2_0_gir_INCLUDES = GObject-2.0 GLib-2.0 Gtk-3.0 Libxfce4util-1.0
@@ -137,6 +154,34 @@ typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 CLEANFILES += $(gir_DATA) $(typelib_DATA)
 endif
 
+if ENABLE_X11
+abicheck_sed_script = s/@-DENABLE_X11@/-DENABLE_X11/;
+libxfce4ui_sed_script = /@BEGIN_X11_HEADERS@/d; /@END_X11_HEADERS@/d;
+else
+abicheck_sed_script = s/@-DENABLE_X11@//;
+libxfce4ui_sed_script = /@BEGIN_X11_HEADERS@/,/@END_X11_HEADERS@/d;
+endif
+if ENABLE_WAYLAND
+abicheck_sed_script += s/@-DENABLE_WAYLAND@/-DENABLE_WAYLAND/
+libxfce4ui_sed_script += /@BEGIN_WAYLAND_HEADERS@/d; /@END_WAYLAND_HEADERS@/d
+else
+abicheck_sed_script += s/@-DENABLE_WAYLAND@//
+libxfce4ui_sed_script += /@BEGIN_WAYLAND_HEADERS@/,/@END_WAYLAND_HEADERS@/d
+endif
+
+abicheck.sh: abicheck.sh.in
+	$(AM_V_GEN) $(SED) "$(abicheck_sed_script)" < $< > $@; \
+	chmod a+x $@
+
+libxfce4ui.h: libxfce4ui.h.in $(top_builddir)/config.h
+	$(AM_V_GEN) $(SED) "$(libxfce4ui_sed_script)" < $< > $@
+
+DISTCLEANFILES = \
+	abicheck.sh \
+	libxfce4ui.h
+
+BUILT_SOURCES = \
+	libxfce4ui.h
 
 ##
 ## Rules to auto-generate built sources
@@ -152,11 +197,11 @@ CLEANFILES += \
 	actual-abi \
 	expected-abi
 
-DISTCLEANFILES = \
+DISTCLEANFILES += \
 	stamp-libxfce4ui-marshal.h \
 	$(libxfce4ui_built_sources)
 
-BUILT_SOURCES = \
+BUILT_SOURCES += \
 	$(libxfce4ui_built_sources)
 
 libxfce4ui-alias.h: make-libxfce4ui-alias.pl libxfce4ui.symbols
@@ -174,7 +219,7 @@ stamp-libxfce4ui-marshal.h: libxfce4ui-marshal.list Makefile
 	echo timestamp >$(@F)
 
 libxfce4ui-marshal.c: libxfce4ui-marshal.list Makefile
-	$(AM_V_GEN) echo "#include <libxfce4ui/libxfce4ui-marshal.h>" > xgen-lmc
+	$(AM_V_GEN) echo "#include \"libxfce4ui-marshal.h\"" > xgen-lmc
 	glib-genmarshal --prefix=_libxfce4ui_marshal --body $(srcdir)/libxfce4ui-marshal.list >>xgen-lmc
 	cmp -s xgen-lmc libxfce4-marshal.c || cp xgen-lmc libxfce4ui-marshal.c
 	rm -f xgen-lmc
@@ -193,12 +238,12 @@ stamp-libxfce4ui-enum-types.h: $(libxfce4ui_enum_headers) Makefile
 	echo timestamp > $(@F)
 libxfce4ui-enum-types.c: $(libxfce4ui_enum_headers) Makefile
 	$(AM_V_GEN) ( cd $(srcdir) && glib-mkenums \
-		--fhead "#include <libxfce4ui/libxfce4ui.h>\n#include <libxfce4ui/libxfce4ui-alias.h>\n\n" \
+		--fhead "#include \"libxfce4ui.h\"\n#include \"libxfce4ui-alias.h\"\n\n" \
 		--fprod "/* enumerations from \"@filename@\" */\n\n" \
 		--vhead "GType\n@enum_name@_get_type(void)\n{\n    static GType type = 0;\n\n    if(!type) {\n        static const G@Type@Value values[] = {"\
 		--vprod "            { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
 		--vtail "            { 0, NULL, NULL }\n\t};\n\ttype = g_@type@_register_static(\"@EnumName@\", values);\n    }\n\n    return type;\n}\n\n" \
-		--ftail "\n#define __LIBXFCE4UI_ENUM_TYPES_C__\n#include <libxfce4ui/libxfce4ui-aliasdef.c>\n" \
+		--ftail "\n#define __LIBXFCE4UI_ENUM_TYPES_C__\n#include \"libxfce4ui-aliasdef.c\"\n" \
 		$(libxfce4ui_enum_headers) ) > xgen-letc
 	cp xgen-letc libxfce4ui-enum-types.c
 	rm -f xgen-letc
@@ -214,7 +259,8 @@ endif
 dist-hook: all
 
 EXTRA_DIST = \
-	abicheck.sh \
+	abicheck.sh.in \
+	libxfce4ui.h.in \
 	libxfce4ui.gresource.xml \
 	$(LIBXFCE4UI_RESOURCE_FILES) \
 	libxfce4ui.symbols \
